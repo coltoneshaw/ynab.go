@@ -6,6 +6,8 @@
 // the API services
 package api // import "github.com/brunomvsouza/ynab.go/api"
 
+import "context"
+
 // ClientReader contract for a read only client
 type ClientReader interface {
 	GET(url string, responseModel interface{}) error
@@ -23,4 +25,29 @@ type ClientWriter interface {
 type ClientReaderWriter interface {
 	ClientReader
 	ClientWriter
+}
+
+// ContextClientReader contract for a context-aware read only client
+type ContextClientReader interface {
+	GETWithContext(ctx context.Context, url string, responseModel interface{}) error
+}
+
+// ContextClientWriter contract for a context-aware write only client
+type ContextClientWriter interface {
+	POSTWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error
+	PUTWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error
+	PATCHWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error
+	DELETEWithContext(ctx context.Context, url string, responseModel interface{}) error
+}
+
+// ContextClientReaderWriter contract for a context-aware read-write client
+type ContextClientReaderWriter interface {
+	ContextClientReader
+	ContextClientWriter
+}
+
+// FullClient contract for a client that supports both context-aware and regular methods
+type FullClient interface {
+	ClientReaderWriter
+	ContextClientReaderWriter
 }

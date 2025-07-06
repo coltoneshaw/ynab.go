@@ -22,6 +22,7 @@ import (
 	"github.com/brunomvsouza/ynab.go/api/payee"
 	"github.com/brunomvsouza/ynab.go/api/transaction"
 	"github.com/brunomvsouza/ynab.go/api/user"
+	"github.com/brunomvsouza/ynab.go/oauth"
 )
 
 const apiEndpoint = "https://api.youneedabudget.com/v1"
@@ -178,4 +179,68 @@ func (c *client) do(method, url string, responseModel interface{}, requestBody [
 	}
 
 	return json.Unmarshal(body, &responseModel)
+}
+
+// OAuth convenience functions
+
+// NewOAuthConfig creates a new OAuth configuration
+func NewOAuthConfig(clientID, clientSecret, redirectURI string) *oauth.Config {
+	return oauth.NewConfig(clientID, clientSecret, redirectURI)
+}
+
+// NewOAuthClient creates a new OAuth-enabled YNAB client
+func NewOAuthClient(config *oauth.Config, tokenManager *oauth.TokenManager) *oauth.OAuthClient {
+	return oauth.NewOAuthClient(config, tokenManager)
+}
+
+// NewOAuthClientFromToken creates a new OAuth client with an existing token
+func NewOAuthClientFromToken(config *oauth.Config, token *oauth.Token) (*oauth.OAuthClient, error) {
+	return oauth.NewOAuthClientFromToken(config, token)
+}
+
+// NewOAuthClientFromStorage creates a new OAuth client with token storage
+func NewOAuthClientFromStorage(config *oauth.Config, storage oauth.TokenStorage) (*oauth.OAuthClient, error) {
+	return oauth.NewOAuthClientFromStorage(config, storage)
+}
+
+// NewOAuthClientBuilder creates a new OAuth client builder
+func NewOAuthClientBuilder(config *oauth.Config) *oauth.ClientBuilder {
+	return oauth.NewClientBuilder(config)
+}
+
+// NewAuthorizationCodeFlow creates a new authorization code flow
+func NewAuthorizationCodeFlow(config *oauth.Config) *oauth.AuthorizationCodeFlow {
+	return oauth.NewAuthorizationCodeFlow(config)
+}
+
+// NewImplicitGrantFlow creates a new implicit grant flow
+func NewImplicitGrantFlow(config *oauth.Config) *oauth.ImplicitGrantFlow {
+	return oauth.NewImplicitGrantFlow(config)
+}
+
+// NewFlowManager creates a new OAuth flow manager
+func NewFlowManager(config *oauth.Config) *oauth.FlowManager {
+	return oauth.NewFlowManager(config)
+}
+
+// NewTokenManager creates a new token manager
+func NewTokenManager(config *oauth.Config, storage oauth.TokenStorage) *oauth.TokenManager {
+	return oauth.NewTokenManager(config, storage)
+}
+
+// Storage convenience functions
+
+// NewFileStorage creates a new file-based token storage
+func NewFileStorage(filePath string) oauth.TokenStorage {
+	return oauth.NewFileStorage(filePath)
+}
+
+// NewMemoryStorage creates a new in-memory token storage
+func NewMemoryStorage() oauth.TokenStorage {
+	return oauth.NewMemoryStorage()
+}
+
+// DefaultTokenPath returns the default token file path
+func DefaultTokenPath() string {
+	return oauth.DefaultTokenPath()
 }
