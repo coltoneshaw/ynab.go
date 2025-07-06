@@ -14,7 +14,7 @@ import (
 
 func TestNewConfig(t *testing.T) {
 	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
-	
+
 	assert.Equal(t, "client-id", config.ClientID)
 	assert.Equal(t, "client-secret", config.ClientSecret)
 	assert.Equal(t, "https://example.com/callback", config.RedirectURI)
@@ -23,18 +23,14 @@ func TestNewConfig(t *testing.T) {
 	assert.Empty(t, config.Scopes)
 }
 
-
 func TestConfig_WithReadOnlyScope(t *testing.T) {
 	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
-	
+
 	result := config.WithReadOnlyScope()
-	
+
 	assert.Same(t, config, result)
 	assert.True(t, config.IsReadOnly())
 }
-
-
-
 
 func TestConfig_GetScopeString(t *testing.T) {
 	tests := []struct {
@@ -66,15 +62,15 @@ func TestConfig_GetScopeString(t *testing.T) {
 func TestConfig_AuthCodeURL(t *testing.T) {
 	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
 	config.WithReadOnlyScope()
-	
+
 	authURL := config.AuthCodeURL("test-state")
-	
+
 	parsedURL, err := url.Parse(authURL)
 	require.NoError(t, err)
-	
+
 	assert.Equal(t, "app.ynab.com", parsedURL.Host)
 	assert.Equal(t, "/oauth/authorize", parsedURL.Path)
-	
+
 	params := parsedURL.Query()
 	assert.Equal(t, "test-client", params.Get("client_id"))
 	assert.Equal(t, "https://example.com/callback", params.Get("redirect_uri"))
@@ -85,40 +81,40 @@ func TestConfig_AuthCodeURL(t *testing.T) {
 
 func TestConfig_ImplicitGrantURL(t *testing.T) {
 	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
-	
+
 	authURL := config.ImplicitGrantURL("test-state")
-	
+
 	parsedURL, err := url.Parse(authURL)
 	require.NoError(t, err)
-	
+
 	params := parsedURL.Query()
 	assert.Equal(t, "token", params.Get("response_type"))
 }
 
 func TestConfig_GenerateState(t *testing.T) {
 	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
-	
+
 	state1, err1 := config.GenerateState()
 	state2, err2 := config.GenerateState()
-	
+
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 	assert.NotEmpty(t, state1)
 	assert.NotEmpty(t, state2)
 	assert.NotEqual(t, state1, state2) // Should generate different states
-	assert.Len(t, state1, 32) // 16 bytes hex-encoded = 32 characters
+	assert.Len(t, state1, 32)          // 16 bytes hex-encoded = 32 characters
 }
 
 func TestConfig_ValidateRedirectURI(t *testing.T) {
 	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
-	
+
 	assert.True(t, config.ValidateRedirectURI("https://example.com/callback"))
 	assert.False(t, config.ValidateRedirectURI("https://different.com/callback"))
 }
 
 func TestConfig_ValidateState(t *testing.T) {
 	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
-	
+
 	assert.True(t, config.ValidateState("test-state", "test-state"))
 	assert.False(t, config.ValidateState("test-state", "different-state"))
 	assert.False(t, config.ValidateState("", "any-state")) // Empty expected state should fail
@@ -192,7 +188,7 @@ func TestConfig_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.config.Validate()
-			
+
 			if tt.shouldError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -308,7 +304,7 @@ func TestCallbackResult_ToToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			token := tt.result.ToToken()
-			
+
 			if tt.expected == nil {
 				assert.Nil(t, token)
 			} else {
@@ -327,15 +323,15 @@ func TestCallbackResult_ToToken(t *testing.T) {
 func TestConfig_buildAuthorizeURL(t *testing.T) {
 	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
 	config.WithReadOnlyScope()
-	
+
 	url := config.buildAuthorizeURL(ResponseTypeCode, "test-state")
-	
+
 	assert.Contains(t, url, "client_id=test-client")
 	assert.Contains(t, url, "redirect_uri=https%3A%2F%2Fexample.com%2Fcallback")
 	assert.Contains(t, url, "response_type=code")
 	assert.Contains(t, url, "state=test-state")
 	assert.Contains(t, url, "scope=read-only")
-	
+
 	// Test without scope (full access)
 	config2 := NewConfig("test-client", "test-secret", "https://example.com/callback")
 	url2 := config2.buildAuthorizeURL(ResponseTypeCode, "test-state")

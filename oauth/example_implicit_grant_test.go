@@ -147,22 +147,22 @@ func ExampleImplicitGrantFlow_mobileApp() {
 
 func ExampleFlowManager_recommendedFlow() {
 	config := oauth.NewConfig("client-id", "client-secret", "redirect-uri")
-	
+
 	// Get recommendation for flow type
 	isServerSide := true
 	needsRefreshToken := true
-	
+
 	recommendedFlow := oauth.RecommendFlow(isServerSide, needsRefreshToken)
-	
+
 	fmt.Printf("Recommended flow: %s\n", recommendedFlow)
-	
+
 	manager := oauth.NewFlowManager(config)
 	flow := manager.GetFlow(recommendedFlow)
-	
+
 	authURL, err := flow.GetAuthorizationURL("state-123")
 	if err != nil {
 		log.Fatal(err)
 	}
-	
+
 	fmt.Printf("Authorization URL: %s\n", authURL)
 }

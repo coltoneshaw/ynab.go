@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/brunomvsouza/ynab.go/api"
 	"github.com/brunomvsouza/ynab.go/api/account"
@@ -36,6 +37,12 @@ type ClientServicer interface {
 	Payee() *payee.Service
 	Month() *month.Service
 	Transaction() *transaction.Service
+
+	// Rate limiting methods
+	RequestsRemaining() int
+	TimeUntilReset() time.Duration
+	RequestsInWindow() int
+	IsAtLimit() bool
 }
 
 // NewClient facilitates the creation of a new client instance
@@ -43,6 +50,7 @@ func NewClient(accessToken string) ClientServicer {
 	c := &client{
 		accessToken: accessToken,
 		client:      http.DefaultClient,
+		rateLimiter: api.NewYNABRateLimitTracker(),
 	}
 
 	c.user = user.NewService(c)
@@ -62,6 +70,8 @@ type client struct {
 	accessToken string
 
 	client *http.Client
+
+	rateLimiter *api.RateLimitTracker
 
 	user        *user.Service
 	budget      *budget.Service
@@ -105,6 +115,28 @@ func (c *client) Month() *month.Service {
 // Transaction returns transaction.Service API instance
 func (c *client) Transaction() *transaction.Service {
 	return c.transaction
+}
+
+// RequestsRemaining returns how many requests can be made before hitting the rate limit
+func (c *client) RequestsRemaining() int {
+	return c.rateLimiter.RequestsRemaining()
+}
+
+// TimeUntilReset returns the duration until the oldest request falls out of the rolling window.
+// In your scenario: if 200 API calls were made over 50 minutes, this returns ~10 minutes
+// (when the oldest request will be 1 hour old and fall off the rolling window).
+func (c *client) TimeUntilReset() time.Duration {
+	return c.rateLimiter.TimeUntilReset()
+}
+
+// RequestsInWindow returns the number of requests made in the current rolling window
+func (c *client) RequestsInWindow() int {
+	return c.rateLimiter.RequestsInWindow()
+}
+
+// IsAtLimit returns true if the rate limit has been reached
+func (c *client) IsAtLimit() bool {
+	return c.rateLimiter.IsAtLimit()
 }
 
 // GET sends a GET request to the YNAB API
@@ -177,6 +209,9 @@ func (c *client) do(method, url string, responseModel interface{}, requestBody [
 
 		return response.Error
 	}
+
+	// Record successful request for rate limiting
+	c.rateLimiter.RecordRequest()
 
 	return json.Unmarshal(body, &responseModel)
 }

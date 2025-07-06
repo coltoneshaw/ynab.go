@@ -17,7 +17,7 @@ func ExampleAuthorizationCodeFlow() {
 	// Step 1: Create OAuth configuration
 	config := ynab.NewOAuthConfig(
 		"your-client-id",
-		"your-client-secret", 
+		"your-client-secret",
 		"https://yourapp.com/oauth/callback",
 	).WithReadOnlyScope()
 
@@ -33,10 +33,10 @@ func ExampleAuthorizationCodeFlow() {
 
 	// Step 4: Redirect user to authURL
 	fmt.Printf("Visit this URL to authorize: %s\n", authURL)
-	
+
 	// Step 5: Handle callback (after user authorizes)
 	callbackURL := "https://yourapp.com/oauth/callback?code=received-auth-code&state=" + state
-	
+
 	ctx := context.Background()
 	token, err := flowManager.CompleteAuthorizationCodeFlow(ctx, callbackURL, state)
 	if err != nil {
@@ -73,7 +73,7 @@ func ExampleAuthorizationCodeFlow_withBuilder() {
 			fmt.Println("Token refreshed automatically")
 		}).
 		Build()
-	
+
 	if err != nil {
 		log.Fatal(err)
 	}

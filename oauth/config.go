@@ -15,19 +15,19 @@ import (
 type Config struct {
 	// ClientID is the OAuth application's client identifier
 	ClientID string
-	
+
 	// ClientSecret is the OAuth application's client secret
 	ClientSecret string
-	
+
 	// RedirectURI is the registered redirect URI for the application
 	RedirectURI string
-	
+
 	// Scopes defines the permissions requested
 	Scopes []Scope
-	
+
 	// AuthorizeURL is the authorization endpoint URL (defaults to YNAB's)
 	AuthorizeURL string
-	
+
 	// TokenURL is the token endpoint URL (defaults to YNAB's)
 	TokenURL string
 }
@@ -99,18 +99,18 @@ func (c *Config) buildAuthorizeURL(responseType ResponseType, state string) stri
 	params.Set("client_id", c.ClientID)
 	params.Set("redirect_uri", c.RedirectURI)
 	params.Set("response_type", string(responseType))
-	
+
 	// Only add scope parameter if scopes are specified
 	// YNAB API: omitting scope parameter grants full access
 	scopeString := c.GetScopeString()
 	if scopeString != "" {
 		params.Set("scope", scopeString)
 	}
-	
+
 	if state != "" {
 		params.Set("state", state)
 	}
-	
+
 	return fmt.Sprintf("%s?%s", c.AuthorizeURL, params.Encode())
 }
 
@@ -119,28 +119,28 @@ func (c *Config) Validate() error {
 	if c.ClientID == "" {
 		return fmt.Errorf("client ID is required")
 	}
-	
+
 	if c.ClientSecret == "" {
 		return fmt.Errorf("client secret is required")
 	}
-	
+
 	if c.RedirectURI == "" {
 		return fmt.Errorf("redirect URI is required")
 	}
-	
+
 	// Validate redirect URI format
 	if _, err := url.Parse(c.RedirectURI); err != nil {
 		return fmt.Errorf("invalid redirect URI: %w", err)
 	}
-	
+
 	if c.AuthorizeURL == "" {
 		return fmt.Errorf("authorize URL is required")
 	}
-	
+
 	if c.TokenURL == "" {
 		return fmt.Errorf("token URL is required")
 	}
-	
+
 	return nil
 }
 
@@ -150,12 +150,12 @@ func (c *Config) ParseCallbackURL(callbackURL string) (*CallbackResult, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid callback URL: %w", err)
 	}
-	
+
 	result := &CallbackResult{}
-	
+
 	// Extract state first (present in both success and error cases)
 	result.State = parsedURL.Query().Get("state")
-	
+
 	// Check for error in query parameters
 	if errorParam := parsedURL.Query().Get("error"); errorParam != "" {
 		result.Error = &ErrorResponse{
@@ -165,41 +165,41 @@ func (c *Config) ParseCallbackURL(callbackURL string) (*CallbackResult, error) {
 		}
 		return result, nil
 	}
-	
+
 	// Check for authorization code (authorization code flow)
 	if code := parsedURL.Query().Get("code"); code != "" {
 		result.Code = code
 		return result, nil
 	}
-	
+
 	// Check for access token in fragment (implicit flow)
 	if parsedURL.Fragment != "" {
 		fragmentParams, err := url.ParseQuery(parsedURL.Fragment)
 		if err != nil {
 			return nil, fmt.Errorf("invalid fragment parameters: %w", err)
 		}
-		
+
 		if accessToken := fragmentParams.Get("access_token"); accessToken != "" {
 			result.AccessToken = accessToken
 			result.TokenType = fragmentParams.Get("token_type")
 			result.Scope = fragmentParams.Get("scope")
-			
+
 			// Parse expires_in if present
 			if expiresIn := fragmentParams.Get("expires_in"); expiresIn != "" {
 				if seconds, err := parseExpiresIn(expiresIn); err == nil {
 					result.ExpiresIn = seconds
 				}
 			}
-			
+
 			// Override state from fragment if present
 			if fragmentState := fragmentParams.Get("state"); fragmentState != "" {
 				result.State = fragmentState
 			}
-			
+
 			return result, nil
 		}
 	}
-	
+
 	return nil, fmt.Errorf("no authorization code or access token found in callback URL")
 }
 
@@ -208,13 +208,13 @@ type CallbackResult struct {
 	// For authorization code flow
 	Code  string
 	State string
-	
+
 	// For implicit flow
 	AccessToken string
 	TokenType   string
 	ExpiresIn   int64
 	Scope       string
-	
+
 	// Error information
 	Error *ErrorResponse
 }
@@ -224,17 +224,17 @@ func (cr *CallbackResult) ToToken() *Token {
 	if cr.AccessToken == "" {
 		return nil
 	}
-	
+
 	token := &Token{
 		AccessToken: cr.AccessToken,
 		TokenType:   TokenType(cr.TokenType),
 		Scope:       Scope(cr.Scope),
 	}
-	
+
 	if cr.ExpiresIn > 0 {
 		token.SetExpiration(cr.ExpiresIn)
 	}
-	
+
 	return token
 }
 

@@ -50,15 +50,15 @@ const (
 
 // Common OAuth errors
 var (
-	ErrInvalidClient       = errors.New("invalid client credentials")
-	ErrInvalidGrant        = errors.New("invalid grant")
-	ErrInvalidRequest      = errors.New("invalid request")
-	ErrInvalidScope        = errors.New("invalid scope")
-	ErrUnauthorizedClient  = errors.New("unauthorized client")
-	ErrUnsupportedGrant    = errors.New("unsupported grant type")
-	ErrAccessDenied        = errors.New("access denied")
-	ErrTokenExpired        = errors.New("token expired")
-	ErrTokenRefreshFailed  = errors.New("token refresh failed")
+	ErrInvalidClient      = errors.New("invalid client credentials")
+	ErrInvalidGrant       = errors.New("invalid grant")
+	ErrInvalidRequest     = errors.New("invalid request")
+	ErrInvalidScope       = errors.New("invalid scope")
+	ErrUnauthorizedClient = errors.New("unauthorized client")
+	ErrUnsupportedGrant   = errors.New("unsupported grant type")
+	ErrAccessDenied       = errors.New("access denied")
+	ErrTokenExpired       = errors.New("token expired")
+	ErrTokenRefreshFailed = errors.New("token refresh failed")
 )
 
 // TokenType represents the type of token
@@ -73,22 +73,22 @@ const (
 type Token struct {
 	// AccessToken is the token used to access YNAB API
 	AccessToken string `json:"access_token"`
-	
+
 	// RefreshToken is used to obtain new access tokens
 	RefreshToken string `json:"refresh_token,omitempty"`
-	
+
 	// TokenType is typically "Bearer"
 	TokenType TokenType `json:"token_type"`
-	
+
 	// ExpiresIn is the number of seconds the token is valid
 	ExpiresIn int64 `json:"expires_in"`
-	
+
 	// Scope is the granted permission scope
 	Scope Scope `json:"scope,omitempty"`
-	
+
 	// ExpiresAt is the calculated expiration time
 	ExpiresAt time.Time `json:"expires_at"`
-	
+
 	// CreatedAt is when the token was created/refreshed
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -98,7 +98,7 @@ func (t *Token) IsExpired() bool {
 	if t.ExpiresAt.IsZero() {
 		return false
 	}
-	
+
 	// Add 5 minute buffer to account for clock skew and network delays
 	buffer := 5 * time.Minute
 	return time.Now().Add(buffer).After(t.ExpiresAt)
@@ -157,12 +157,12 @@ type TokenRequest struct {
 
 // TokenResponse represents the response from token endpoint
 type TokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int64  `json:"expires_in"`
-	Scope        string `json:"scope,omitempty"`
-	Error        string `json:"error,omitempty"`
+	AccessToken      string `json:"access_token"`
+	RefreshToken     string `json:"refresh_token,omitempty"`
+	TokenType        string `json:"token_type"`
+	ExpiresIn        int64  `json:"expires_in"`
+	Scope            string `json:"scope,omitempty"`
+	Error            string `json:"error,omitempty"`
 	ErrorDescription string `json:"error_description,omitempty"`
 }
 
@@ -174,10 +174,10 @@ func (tr *TokenResponse) ToToken() *Token {
 		TokenType:    TokenType(tr.TokenType),
 		Scope:        Scope(tr.Scope),
 	}
-	
+
 	if tr.ExpiresIn > 0 {
 		token.SetExpiration(tr.ExpiresIn)
 	}
-	
+
 	return token
 }

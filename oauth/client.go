@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/brunomvsouza/ynab.go/api"
 	"github.com/brunomvsouza/ynab.go/api/account"
@@ -29,11 +30,13 @@ const apiEndpoint = "https://api.youneedabudget.com/v1"
 // OAuthClient is a YNAB client that uses OAuth for authentication
 type OAuthClient struct {
 	sync.Mutex
-	
+
 	config       *Config
 	tokenManager *TokenManager
 	httpClient   *http.Client
-	
+
+	rateLimiter *api.RateLimitTracker
+
 	// Service instances
 	user        *user.Service
 	budget      *budget.Service
@@ -50,8 +53,9 @@ func NewOAuthClient(config *Config, tokenManager *TokenManager) *OAuthClient {
 		config:       config,
 		tokenManager: tokenManager,
 		httpClient:   http.DefaultClient,
+		rateLimiter:  api.NewYNABRateLimitTracker(),
 	}
-	
+
 	// Initialize services
 	client.user = user.NewService(client)
 	client.budget = budget.NewService(client)
@@ -60,7 +64,7 @@ func NewOAuthClient(config *Config, tokenManager *TokenManager) *OAuthClient {
 	client.payee = payee.NewService(client)
 	client.month = month.NewService(client)
 	client.transaction = transaction.NewService(client)
-	
+
 	return client
 }
 
@@ -70,7 +74,7 @@ func NewOAuthClientFromToken(config *Config, token *Token) (*OAuthClient, error)
 	if err := storage.SaveToken(token); err != nil {
 		return nil, fmt.Errorf("failed to save token: %w", err)
 	}
-	
+
 	tokenManager := NewTokenManager(config, storage)
 	return NewOAuthClient(config, tokenManager), nil
 }
@@ -166,6 +170,28 @@ func (c *OAuthClient) Transaction() *transaction.Service {
 	return c.transaction
 }
 
+// RequestsRemaining returns how many requests can be made before hitting the rate limit
+func (c *OAuthClient) RequestsRemaining() int {
+	return c.rateLimiter.RequestsRemaining()
+}
+
+// TimeUntilReset returns the duration until the oldest request falls out of the rolling window.
+// In your scenario: if 200 API calls were made over 50 minutes, this returns ~10 minutes
+// (when the oldest request will be 1 hour old and fall off the rolling window).
+func (c *OAuthClient) TimeUntilReset() time.Duration {
+	return c.rateLimiter.TimeUntilReset()
+}
+
+// RequestsInWindow returns the number of requests made in the current rolling window
+func (c *OAuthClient) RequestsInWindow() int {
+	return c.rateLimiter.RequestsInWindow()
+}
+
+// IsAtLimit returns true if the rate limit has been reached
+func (c *OAuthClient) IsAtLimit() bool {
+	return c.rateLimiter.IsAtLimit()
+}
+
 // HTTP methods (implementing api.ClientReaderWriter interface)
 
 // GET sends a GET request to the YNAB API
@@ -227,28 +253,28 @@ func (c *OAuthClient) do(ctx context.Context, method, url string, responseModel 
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
-	
+
 	// Prepare request
 	fullURL := fmt.Sprintf("%s%s", apiEndpoint, url)
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, bytes.NewBuffer(requestBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	// Set headers
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Authorization", "Bearer "+accessToken)
 	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	
+
 	// Send request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("request failed: %w", err)
 	}
-	defer resp.Body.Close()
-	
+	defer func() { _ = resp.Body.Close() }()
+
 	// Handle 401 Unauthorized - try token refresh once
 	if resp.StatusCode == http.StatusUnauthorized {
 		// Try to refresh token
@@ -257,33 +283,33 @@ func (c *OAuthClient) do(ctx context.Context, method, url string, responseModel 
 			if newAccessToken, tokenErr := c.tokenManager.GetAccessToken(ctx); tokenErr == nil {
 				// Retry the request with new token
 				req.Header.Set("Authorization", "Bearer "+newAccessToken)
-				
+
 				// Create new request body if needed
 				if requestBody != nil {
 					req.Body = io.NopCloser(bytes.NewBuffer(requestBody))
 				}
-				
+
 				resp, err = c.httpClient.Do(req)
 				if err != nil {
 					return fmt.Errorf("retry request failed: %w", err)
 				}
-				defer resp.Body.Close()
+				defer func() { _ = resp.Body.Close() }()
 			}
 		}
 	}
-	
+
 	// Read response body
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
 	}
-	
+
 	// Handle error responses
 	if resp.StatusCode >= 400 {
 		response := struct {
 			Error *api.Error `json:"error"`
 		}{}
-		
+
 		if err := json.Unmarshal(body, &response); err != nil {
 			// Return a forged *api.Error for ease of use
 			apiError := &api.Error{
@@ -293,26 +319,29 @@ func (c *OAuthClient) do(ctx context.Context, method, url string, responseModel 
 			}
 			return apiError
 		}
-		
+
 		return response.Error
 	}
-	
+
+	// Record successful request for rate limiting
+	c.rateLimiter.RecordRequest()
+
 	// Parse successful response
 	if responseModel != nil {
 		if err := json.Unmarshal(body, responseModel); err != nil {
 			return fmt.Errorf("failed to parse response: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
 // ClientBuilder helps build OAuth clients with fluent interface
 type ClientBuilder struct {
-	config  *Config
-	storage TokenStorage
-	token   *Token
-	httpClient *http.Client
+	config               *Config
+	storage              TokenStorage
+	token                *Token
+	httpClient           *http.Client
 	tokenRefreshCallback func(*Token)
 }
 
@@ -371,34 +400,34 @@ func (b *ClientBuilder) Build() (*OAuthClient, error) {
 	if b.storage == nil {
 		b.storage = NewMemoryStorage()
 	}
-	
+
 	// Create token manager
 	tokenManager := NewTokenManager(b.config, b.storage)
-	
+
 	// Set HTTP client if provided
 	if b.httpClient != nil {
 		tokenManager.WithHTTPClient(b.httpClient)
 	}
-	
+
 	// Set token refresh callback if provided
 	if b.tokenRefreshCallback != nil {
 		tokenManager.WithTokenRefreshCallback(b.tokenRefreshCallback)
 	}
-	
+
 	// Create client
 	client := NewOAuthClient(b.config, tokenManager)
-	
+
 	// Set HTTP client if provided
 	if b.httpClient != nil {
 		client.WithHTTPClient(b.httpClient)
 	}
-	
+
 	// Set initial token if provided
 	if b.token != nil {
 		if err := client.SetToken(b.token); err != nil {
 			return nil, fmt.Errorf("failed to set initial token: %w", err)
 		}
 	}
-	
+
 	return client, nil
 }

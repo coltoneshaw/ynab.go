@@ -134,7 +134,7 @@ func TestToken_SetExpiration(t *testing.T) {
 	assert.Equal(t, expiresIn, token.ExpiresIn)
 	assert.False(t, token.ExpiresAt.IsZero())
 	assert.False(t, token.CreatedAt.IsZero())
-	
+
 	// Check that expiration is approximately 1 hour from now
 	expectedExpiration := time.Now().Add(time.Duration(expiresIn) * time.Second)
 	assert.WithinDuration(t, expectedExpiration, token.ExpiresAt, 5*time.Second)

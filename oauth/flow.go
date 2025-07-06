@@ -14,7 +14,7 @@ import (
 type Flow interface {
 	// GetAuthorizationURL returns the URL users should visit to authorize the application
 	GetAuthorizationURL(state string) (string, error)
-	
+
 	// HandleCallback processes the callback from the authorization server
 	HandleCallback(callbackURL string, expectedState string) (*Token, error)
 }
@@ -50,7 +50,7 @@ func (f *AuthorizationCodeFlow) GetAuthorizationURL(state string) (string, error
 	if err := f.config.Validate(); err != nil {
 		return "", fmt.Errorf("invalid config: %w", err)
 	}
-	
+
 	return f.config.AuthCodeURL(state), nil
 }
 
@@ -61,29 +61,29 @@ func (f *AuthorizationCodeFlow) HandleCallback(callbackURL string, expectedState
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse callback URL: %w", err)
 	}
-	
+
 	// Check for OAuth errors
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	
+
 	// Validate state parameter if provided
 	if expectedState != "" && !f.config.ValidateState(expectedState, result.State) {
 		return nil, fmt.Errorf("state parameter mismatch")
 	}
-	
+
 	// Ensure we have an authorization code
 	if result.Code == "" {
 		return nil, fmt.Errorf("no authorization code received")
 	}
-	
+
 	// Exchange the code for tokens
 	ctx := context.Background()
 	token, err := f.tokenManager.ExchangeCode(ctx, result.Code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code for token: %w", err)
 	}
-	
+
 	return token, nil
 }
 
@@ -94,28 +94,28 @@ func (f *AuthorizationCodeFlow) HandleCallbackWithContext(ctx context.Context, c
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse callback URL: %w", err)
 	}
-	
+
 	// Check for OAuth errors
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	
+
 	// Validate state parameter if provided
 	if expectedState != "" && !f.config.ValidateState(expectedState, result.State) {
 		return nil, fmt.Errorf("state parameter mismatch")
 	}
-	
+
 	// Ensure we have an authorization code
 	if result.Code == "" {
 		return nil, fmt.Errorf("no authorization code received")
 	}
-	
+
 	// Exchange the code for tokens
 	token, err := f.tokenManager.ExchangeCode(ctx, result.Code)
 	if err != nil {
 		return nil, fmt.Errorf("failed to exchange code for token: %w", err)
 	}
-	
+
 	return token, nil
 }
 
@@ -136,7 +136,7 @@ func (f *ImplicitGrantFlow) GetAuthorizationURL(state string) (string, error) {
 	if err := f.config.Validate(); err != nil {
 		return "", fmt.Errorf("invalid config: %w", err)
 	}
-	
+
 	return f.config.ImplicitGrantURL(state), nil
 }
 
@@ -147,23 +147,23 @@ func (f *ImplicitGrantFlow) HandleCallback(callbackURL string, expectedState str
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse callback URL: %w", err)
 	}
-	
+
 	// Check for OAuth errors
 	if result.Error != nil {
 		return nil, result.Error
 	}
-	
+
 	// Validate state parameter if provided
 	if expectedState != "" && !f.config.ValidateState(expectedState, result.State) {
 		return nil, fmt.Errorf("state parameter mismatch")
 	}
-	
+
 	// Convert to token
 	token := result.ToToken()
 	if token == nil {
 		return nil, fmt.Errorf("no access token received")
 	}
-	
+
 	return token, nil
 }
 
@@ -178,9 +178,9 @@ type FlowManager struct {
 // NewFlowManager creates a new flow manager
 func NewFlowManager(config *Config) *FlowManager {
 	return &FlowManager{
-		config:         config,
-		authCodeFlow:   NewAuthorizationCodeFlow(config),
-		implicitFlow:   NewImplicitGrantFlow(config),
+		config:       config,
+		authCodeFlow: NewAuthorizationCodeFlow(config),
+		implicitFlow: NewImplicitGrantFlow(config),
 	}
 }
 
@@ -229,12 +229,12 @@ func (fm *FlowManager) StartAuthorizationCodeFlow() (authURL, state string, err 
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate state: %w", err)
 	}
-	
+
 	authURL, err = fm.authCodeFlow.GetAuthorizationURL(state)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get authorization URL: %w", err)
 	}
-	
+
 	return authURL, state, nil
 }
 
@@ -244,12 +244,12 @@ func (fm *FlowManager) StartImplicitGrantFlow() (authURL, state string, err erro
 	if err != nil {
 		return "", "", fmt.Errorf("failed to generate state: %w", err)
 	}
-	
+
 	authURL, err = fm.implicitFlow.GetAuthorizationURL(state)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get authorization URL: %w", err)
 	}
-	
+
 	return authURL, state, nil
 }
 
@@ -268,10 +268,10 @@ func RecommendFlow(isServerSide, needsRefreshToken bool) ResponseType {
 	if isServerSide && needsRefreshToken {
 		return ResponseTypeCode // Authorization Code flow
 	}
-	
+
 	if !isServerSide {
 		return ResponseTypeToken // Implicit flow for client-side apps
 	}
-	
+
 	return ResponseTypeCode // Default to Authorization Code flow
 }

@@ -497,6 +497,99 @@ client := ynab.NewOAuthClientBuilder(config).
 
 See the [godoc](https://godoc.org/github.com/brunomvsouza/ynab.go) for complete API documentation with examples.
 
+## Rate Limiting
+
+YNAB enforces **200 requests per hour per access token** using a rolling window. When exceeded, you'll get a `429 Too Many Requests` error.
+
+### Handling 429 Errors
+
+```go
+budgets, err := client.Budget().GetBudgets()
+if err != nil {
+    if apiErr, ok := err.(*api.Error); ok && apiErr.ID == "429" {
+        log.Println("Rate limited! Try again later or use delta requests")
+    }
+}
+```
+
+### Automatic Rate Tracking
+
+Rate limiting is now built into all YNAB clients - no manual tracking needed:
+
+```go
+// Create client (automatically includes rate limiting)
+client := ynab.NewClient("your-token")
+
+// Make API calls - rate limiting is automatic!
+budgets, err := client.Budget().GetBudgets()
+if err != nil {
+    if apiErr, ok := err.(*api.Error); ok && apiErr.ID == "429" {
+        // Wait for rate limit to reset
+        waitTime := client.TimeUntilReset()
+        fmt.Printf("Rate limited! Waiting %v before retry\n", waitTime)
+        time.Sleep(waitTime)
+        // Retry the request...
+    }
+}
+
+// Check your current usage anytime
+fmt.Printf("Used %d/200 requests, %d remaining\n", 
+    client.RequestsInWindow(), client.RequestsRemaining())
+
+// Check if you should wait before making more requests
+if client.RequestsRemaining() == 0 {
+    waitTime := client.TimeUntilReset()
+    fmt.Printf("At rate limit, next request available in %v\n", waitTime)
+}
+```
+
+#### Planning Batch Operations
+
+Before making many requests, check your remaining quota:
+
+```go
+transactions := []transaction.PayloadTransaction{ /* ... */ }
+
+if client.RequestsRemaining() < len(transactions) {
+    fmt.Printf("Need %d requests, only %d remaining\n", 
+        len(transactions), client.RequestsRemaining())
+    
+    // Wait for rate limit to reset
+    waitTime := client.TimeUntilReset()
+    fmt.Printf("Waiting %v for rate limit reset\n", waitTime)
+    time.Sleep(waitTime)
+}
+
+// Now proceed with batch operation
+for _, tx := range transactions {
+    _, err := client.Transaction().CreateTransaction(budgetID, tx)
+    // Rate limiting is tracked automatically
+}
+```
+
+### Reduce API Usage
+
+**Use delta requests** to fetch only changes:
+```go
+// Get full data first
+snapshot, _ := client.Budget().GetBudget(budgetID, nil)
+
+// Later, get only changes
+filter := &api.Filter{LastKnowledgeOfServer: snapshot.ServerKnowledge}
+changes, _ := client.Budget().GetBudget(budgetID, filter)
+```
+
+**Use batch operations** instead of individual calls:
+```go
+// Good: 1 request
+client.Transaction().CreateTransactions(budgetID, transactions)
+
+// Bad: N requests  
+for _, tx := range transactions {
+    client.Transaction().CreateTransaction(budgetID, tx)
+}
+```
+
 ## Development
 
 - Make sure you have Go 1.19 or later installed

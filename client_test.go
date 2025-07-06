@@ -9,7 +9,9 @@ import (
 	"io"
 	"net/http"
 	"testing"
+	"time"
 
+	"github.com/brunomvsouza/ynab.go/api"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/jarcoal/httpmock.v1"
 )
@@ -64,6 +66,42 @@ func TestClient_GET(t *testing.T) {
 		err := c.(*client).GET("/foo", &response)
 		expectedErrStr := "api: error id=400 name=error_name detail=Error detail"
 		assert.EqualError(t, err, expectedErrStr)
+	})
+
+	t.Run("failure with rate limit error (429)", func(t *testing.T) {
+		httpmock.Activate()
+		defer httpmock.DeactivateAndReset()
+
+		httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("%s%s", apiEndpoint, "/foo"),
+			func(req *http.Request) (*http.Response, error) {
+				res := httpmock.NewStringResponse(http.StatusTooManyRequests, `{
+  "error": {
+    "id": "429",
+    "name": "too_many_requests",
+    "detail": "Too many requests"
+  }
+}`)
+				return res, nil
+			},
+		)
+
+		response := struct {
+			Foo string `json:"foo"`
+		}{}
+
+		c := NewClient("")
+		err := c.(*client).GET("/foo", &response)
+		expectedErrStr := "api: error id=429 name=too_many_requests detail=Too many requests"
+		assert.EqualError(t, err, expectedErrStr)
+
+		// Test that we can detect rate limiting errors
+		if apiErr, ok := err.(*api.Error); ok {
+			assert.Equal(t, "429", apiErr.ID)
+			assert.Equal(t, "too_many_requests", apiErr.Name)
+			assert.Equal(t, "Too many requests", apiErr.Detail)
+		} else {
+			t.Fatal("Expected api.Error type")
+		}
 	})
 
 	t.Run("failure with with unexpected API error", func(t *testing.T) {
@@ -586,4 +624,87 @@ func TestClient_DELETE(t *testing.T) {
 			Foo string `json:"foo"`
 		}{}, response)
 	})
+}
+
+func TestClient_RateLimitingMethods(t *testing.T) {
+	c := NewClient("test-token")
+
+	// Test that rate limiting methods are available
+	assert.Equal(t, 200, c.RequestsRemaining())           // Should start with full quota
+	assert.Equal(t, 0, c.RequestsInWindow())              // No requests made yet
+	assert.False(t, c.IsAtLimit())                        // Not at limit
+	assert.Equal(t, time.Duration(0), c.TimeUntilReset()) // No requests to reset
+}
+
+func TestClient_AutomaticRateTracking(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("%s%s", apiEndpoint, "/test"),
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(http.StatusOK, `{"success": true}`)
+			return res, nil
+		},
+	)
+
+	c := NewClient("test-token")
+
+	// Check initial state
+	assert.Equal(t, 200, c.RequestsRemaining())
+	assert.Equal(t, 0, c.RequestsInWindow())
+
+	// Make a request
+	response := struct {
+		Success bool `json:"success"`
+	}{}
+	err := c.(*client).GET("/test", &response)
+	assert.NoError(t, err)
+
+	// Verify rate limiting was tracked automatically
+	assert.Equal(t, 199, c.RequestsRemaining()) // Should decrease
+	assert.Equal(t, 1, c.RequestsInWindow())    // Should increase
+	assert.False(t, c.IsAtLimit())              // Still not at limit
+
+	// Make another request
+	err = c.(*client).GET("/test", &response)
+	assert.NoError(t, err)
+
+	// Verify tracking continues
+	assert.Equal(t, 198, c.RequestsRemaining())
+	assert.Equal(t, 2, c.RequestsInWindow())
+}
+
+func TestClient_RateLimitingNotTrackedOnError(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("%s%s", apiEndpoint, "/test"),
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(http.StatusBadRequest, `{
+				"error": {
+					"id": "400",
+					"name": "bad_request",
+					"detail": "Bad request"
+				}
+			}`)
+			return res, nil
+		},
+	)
+
+	c := NewClient("test-token")
+
+	// Check initial state
+	assert.Equal(t, 200, c.RequestsRemaining())
+	assert.Equal(t, 0, c.RequestsInWindow())
+
+	// Make a failing request
+	response := struct {
+		Success bool `json:"success"`
+	}{}
+	err := c.(*client).GET("/test", &response)
+	assert.Error(t, err)
+
+	// Verify rate limiting was NOT tracked for failed request
+	assert.Equal(t, 200, c.RequestsRemaining()) // Should remain unchanged
+	assert.Equal(t, 0, c.RequestsInWindow())    // Should remain unchanged
 }

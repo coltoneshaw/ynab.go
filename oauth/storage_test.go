@@ -15,14 +15,14 @@ import (
 
 func TestMemoryStorage(t *testing.T) {
 	storage := NewMemoryStorage()
-	
+
 	// Initially no token
 	assert.False(t, storage.HasToken())
-	
+
 	token, err := storage.LoadToken()
 	assert.Error(t, err)
 	assert.Nil(t, token)
-	
+
 	// Save a token
 	testToken := &Token{
 		AccessToken:  "test-access-token",
@@ -32,11 +32,11 @@ func TestMemoryStorage(t *testing.T) {
 		Scope:        ScopeReadOnly,
 	}
 	testToken.SetExpiration(3600)
-	
+
 	err = storage.SaveToken(testToken)
 	assert.NoError(t, err)
 	assert.True(t, storage.HasToken())
-	
+
 	// Load the token
 	loadedToken, err := storage.LoadToken()
 	assert.NoError(t, err)
@@ -44,7 +44,7 @@ func TestMemoryStorage(t *testing.T) {
 	assert.Equal(t, testToken.RefreshToken, loadedToken.RefreshToken)
 	assert.Equal(t, testToken.TokenType, loadedToken.TokenType)
 	assert.Equal(t, testToken.Scope, loadedToken.Scope)
-	
+
 	// Clear the token
 	err = storage.ClearToken()
 	assert.NoError(t, err)
@@ -55,12 +55,12 @@ func TestFileStorage(t *testing.T) {
 	// Create temporary file
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "test_token.json")
-	
+
 	storage := NewFileStorage(filePath)
-	
+
 	// Initially no token
 	assert.False(t, storage.HasToken())
-	
+
 	// Save a token
 	testToken := &Token{
 		AccessToken:  "test-access-token",
@@ -70,27 +70,27 @@ func TestFileStorage(t *testing.T) {
 		Scope:        ScopeReadOnly,
 	}
 	testToken.SetExpiration(3600)
-	
+
 	err := storage.SaveToken(testToken)
 	assert.NoError(t, err)
 	assert.True(t, storage.HasToken())
-	
+
 	// Check file exists and has secure permissions
 	fileInfo, err := os.Stat(filePath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0600), fileInfo.Mode())
-	
+
 	// Load the token
 	loadedToken, err := storage.LoadToken()
 	assert.NoError(t, err)
 	assert.Equal(t, testToken.AccessToken, loadedToken.AccessToken)
 	assert.Equal(t, testToken.RefreshToken, loadedToken.RefreshToken)
-	
+
 	// Clear the token
 	err = storage.ClearToken()
 	assert.NoError(t, err)
 	assert.False(t, storage.HasToken())
-	
+
 	// File should be removed
 	_, err = os.Stat(filePath)
 	assert.True(t, os.IsNotExist(err))
@@ -99,13 +99,13 @@ func TestFileStorage(t *testing.T) {
 func TestFileStorage_WithFileMode(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "test_token.json")
-	
+
 	storage := NewFileStorage(filePath).WithFileMode(0644)
-	
+
 	testToken := &Token{AccessToken: "test"}
 	err := storage.SaveToken(testToken)
 	assert.NoError(t, err)
-	
+
 	fileInfo, err := os.Stat(filePath)
 	require.NoError(t, err)
 	assert.Equal(t, os.FileMode(0644), fileInfo.Mode())
@@ -114,13 +114,13 @@ func TestFileStorage_WithFileMode(t *testing.T) {
 func TestFileStorage_DirectoryCreation(t *testing.T) {
 	tempDir := t.TempDir()
 	nestedPath := filepath.Join(tempDir, "nested", "dir", "token.json")
-	
+
 	storage := NewFileStorage(nestedPath)
-	
+
 	testToken := &Token{AccessToken: "test"}
 	err := storage.SaveToken(testToken)
 	assert.NoError(t, err)
-	
+
 	// Check that nested directories were created
 	assert.True(t, storage.HasToken())
 }
@@ -128,7 +128,7 @@ func TestFileStorage_DirectoryCreation(t *testing.T) {
 func TestFileStorage_GetFilePath(t *testing.T) {
 	filePath := "/path/to/token.json"
 	storage := NewFileStorage(filePath)
-	
+
 	assert.Equal(t, filePath, storage.GetFilePath())
 }
 
@@ -136,25 +136,25 @@ func TestEncryptedFileStorage(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "encrypted_token.json")
 	key := []byte("test-encryption-key")
-	
+
 	storage := NewEncryptedFileStorage(filePath, key)
-	
+
 	testToken := &Token{
 		AccessToken:  "test-access-token",
 		RefreshToken: "test-refresh-token",
 	}
-	
+
 	// Save encrypted token
 	err := storage.SaveToken(testToken)
 	assert.NoError(t, err)
 	assert.True(t, storage.HasToken())
-	
+
 	// Load and decrypt token
 	loadedToken, err := storage.LoadToken()
 	assert.NoError(t, err)
 	assert.Equal(t, testToken.AccessToken, loadedToken.AccessToken)
 	assert.Equal(t, testToken.RefreshToken, loadedToken.RefreshToken)
-	
+
 	// Check that file content is actually encrypted (not plain JSON)
 	fileContent, err := os.ReadFile(filePath)
 	require.NoError(t, err)
@@ -164,39 +164,39 @@ func TestEncryptedFileStorage(t *testing.T) {
 func TestChainedStorage(t *testing.T) {
 	memory1 := NewMemoryStorage()
 	memory2 := NewMemoryStorage()
-	
+
 	chained := NewChainedStorage(memory1, memory2)
-	
+
 	// Initially no token in any storage
 	assert.False(t, chained.HasToken())
-	
+
 	testToken := &Token{AccessToken: "test-token"}
-	
+
 	// Save token - should save to all storages
 	err := chained.SaveToken(testToken)
 	assert.NoError(t, err)
-	
+
 	assert.True(t, memory1.HasToken())
 	assert.True(t, memory2.HasToken())
 	assert.True(t, chained.HasToken())
-	
+
 	// Load token - should load from first available storage
 	loadedToken, err := chained.LoadToken()
 	assert.NoError(t, err)
 	assert.Equal(t, testToken.AccessToken, loadedToken.AccessToken)
-	
+
 	// Clear from first storage, should still load from second
 	err = memory1.ClearToken()
 	assert.NoError(t, err)
-	
+
 	loadedToken, err = chained.LoadToken()
 	assert.NoError(t, err)
 	assert.Equal(t, testToken.AccessToken, loadedToken.AccessToken)
-	
+
 	// Clear all storages
 	err = chained.ClearToken()
 	assert.NoError(t, err)
-	
+
 	assert.False(t, memory1.HasToken())
 	assert.False(t, memory2.HasToken())
 	assert.False(t, chained.HasToken())
@@ -256,13 +256,13 @@ func TestNewStorage(t *testing.T) {
 			},
 		},
 		{
-			name: "Encrypted storage without key",
-			opts: StorageOptions{Type: "encrypted"},
+			name:        "Encrypted storage without key",
+			opts:        StorageOptions{Type: "encrypted"},
 			expectError: true,
 		},
 		{
-			name: "Unknown storage type",
-			opts: StorageOptions{Type: "unknown"},
+			name:        "Unknown storage type",
+			opts:        StorageOptions{Type: "unknown"},
 			expectError: true,
 		},
 	}
@@ -270,7 +270,7 @@ func TestNewStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			storage, err := NewStorage(tt.opts)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Nil(t, storage)
@@ -292,14 +292,14 @@ func TestFileStorage_ErrorCases(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "token cannot be nil")
 	})
-	
+
 	t.Run("Load non-existent file", func(t *testing.T) {
 		storage := NewFileStorage("/non/existent/path/token.json")
 		token, err := storage.LoadToken()
 		assert.Error(t, err)
 		assert.Nil(t, token)
 	})
-	
+
 	t.Run("Clear non-existent token", func(t *testing.T) {
 		storage := NewFileStorage("/non/existent/path/token.json")
 		err := storage.ClearToken()
@@ -310,14 +310,14 @@ func TestFileStorage_ErrorCases(t *testing.T) {
 func TestEncryptedFileStorage_ErrorCases(t *testing.T) {
 	tempDir := t.TempDir()
 	filePath := filepath.Join(tempDir, "token.json")
-	
+
 	t.Run("Save nil token", func(t *testing.T) {
 		storage := NewEncryptedFileStorage(filePath, []byte("key"))
 		err := storage.SaveToken(nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "token cannot be nil")
 	})
-	
+
 	t.Run("Load non-existent file", func(t *testing.T) {
 		storage := NewEncryptedFileStorage("/non/existent/token.json", []byte("key"))
 		token, err := storage.LoadToken()
@@ -329,20 +329,20 @@ func TestEncryptedFileStorage_ErrorCases(t *testing.T) {
 func TestEncryptDecrypt(t *testing.T) {
 	key := []byte("test-encryption-key")
 	storage := &EncryptedFileStorage{key: key}
-	
+
 	original := []byte("sensitive token data")
 	encrypted := storage.encrypt(original)
 	decrypted := storage.decrypt(encrypted)
-	
+
 	assert.NotEqual(t, original, encrypted) // Should be different when encrypted
 	assert.Equal(t, original, decrypted)    // Should be same when decrypted
 }
 
 func TestEncryptWithEmptyKey(t *testing.T) {
 	storage := &EncryptedFileStorage{key: []byte{}}
-	
+
 	data := []byte("test data")
 	encrypted := storage.encrypt(data)
-	
+
 	assert.Equal(t, data, encrypted) // Should return original data with empty key
 }
