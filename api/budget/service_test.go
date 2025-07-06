@@ -948,3 +948,64 @@ func TestService_GetBudgetSettings(t *testing.T) {
 		assert.Equal(t, expected, settings)
 	})
 }
+
+func TestService_GetBudgetsWithAccounts(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets?include_accounts=true"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "budgets": [
+      {
+        "id": "aa248caa-eed7-4575-a990-717386438d2c",
+        "name": "TestBudget",
+        "last_modified_on": "2018-03-05T17:05:23+00:00",
+        "first_month": "2018-03-01",
+        "last_month": "2018-04-01",
+        "date_format": {
+          "format": "DD.MM.YYYY"
+        },
+        "currency_format": {
+          "iso_code": "EUR",
+          "example_format": "123,456.78",
+          "decimal_digits": 2,
+          "decimal_separator": ".",
+          "symbol_first": false,
+          "group_separator": ",",
+          "currency_symbol": "€",
+          "display_symbol": true
+        },
+        "accounts": [
+          {
+            "id": "account-id-123",
+            "name": "Checking Account",
+            "type": "checking",
+            "on_budget": true,
+            "closed": false,
+            "note": null,
+            "balance": 150000,
+            "cleared_balance": 150000,
+            "uncleared_balance": 0,
+            "deleted": false
+          }
+        ]
+      }
+    ]
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	budgets, err := client.Budget().GetBudgetsWithAccounts(true)
+	assert.NoError(t, err)
+
+	assert.Equal(t, 1, len(budgets))
+	assert.Equal(t, "aa248caa-eed7-4575-a990-717386438d2c", budgets[0].ID)
+	assert.Equal(t, "TestBudget", budgets[0].Name)
+}

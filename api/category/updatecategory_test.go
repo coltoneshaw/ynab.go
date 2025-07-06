@@ -69,8 +69,8 @@ func TestService_UpdateCategory(t *testing.T) {
 	assert.NoError(t, err)
 
 	var (
-		expectedGoalTarget             int64  = 25000
-		expectedGoalPercentageComplete uint16 = 20
+		expectedGoalTarget             int64 = 25000
+		expectedGoalPercentageComplete int32 = 20
 	)
 	expectedGoalCreationMonth, err := api.DateFromString("2018-04-01")
 	assert.NoError(t, err)

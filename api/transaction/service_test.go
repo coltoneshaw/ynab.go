@@ -1510,3 +1510,118 @@ func TestService_DeleteScheduledTransaction(t *testing.T) {
 	}
 	assert.Equal(t, expected, stx)
 }
+
+func TestService_ImportTransactions(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/transactions/import"
+	httpmock.RegisterResponder(http.MethodPost, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(201, `{
+  "data": {
+    "transaction_ids": [
+      "imported-tx-1",
+      "imported-tx-2",
+      "imported-tx-3"
+    ]
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	result, err := client.Transaction().ImportTransactions(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+	)
+	assert.NoError(t, err)
+
+	expected := &transaction.ImportResult{
+		TransactionIDs: []string{
+			"imported-tx-1",
+			"imported-tx-2",
+			"imported-tx-3",
+		},
+	}
+	assert.Equal(t, expected, result)
+}
+
+func TestService_GetTransactionsByMonth(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/months/2018-11/transactions"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "transactions": [
+      {
+        "id": "0f5b3f73-ded2-4dd7-8b01-c23022622cd6",
+        "date": "2018-11-13",
+        "amount": -9000,
+        "memo": "November transaction",
+        "cleared": "cleared",
+        "approved": true,
+        "flag_color": "blue",
+        "account_id": "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+        "account_name": "Bank Name",
+        "payee_id": "0d0e928d-312a-4bcd-89c4-e02f40d1fe46",
+        "payee_name": "Month Payee",
+        "category_id": "f3cc4f55-312a-4bcd-89c4-db34379cb1dc",
+        "category_name": "Groceries",
+        "transfer_account_id": null,
+        "import_id": null,
+        "deleted": false,
+        "subtransactions": []
+      }
+    ]
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	transactions, err := client.Transaction().GetTransactionsByMonth(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+		"2018-11",
+		nil,
+	)
+	assert.NoError(t, err)
+
+	payloadDate, err := api.DateFromString("2018-11-13")
+	assert.NoError(t, err)
+
+	payeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	payeeName := "Month Payee"
+	categoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	categoryName := "Groceries"
+	memo := "November transaction"
+	flagColor := transaction.FlagColorBlue
+
+	expected := []*transaction.Transaction{
+		{
+			ID:              "0f5b3f73-ded2-4dd7-8b01-c23022622cd6",
+			Date:            payloadDate,
+			Amount:          int64(-9000),
+			Memo:            &memo,
+			Cleared:         transaction.ClearingStatusCleared,
+			Approved:        true,
+			FlagColor:       &flagColor,
+			AccountID:       "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+			AccountName:     "Bank Name",
+			PayeeID:         &payeeID,
+			PayeeName:       &payeeName,
+			CategoryID:      &categoryID,
+			CategoryName:    &categoryName,
+			Deleted:         false,
+			SubTransactions: []*transaction.SubTransaction{},
+		},
+	}
+
+	assert.Equal(t, expected, transactions)
+}

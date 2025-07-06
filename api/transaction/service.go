@@ -224,6 +224,27 @@ func (s *Service) GetTransactionsByAccount(budgetID, accountID string,
 	return resModel.Data.Transactions, nil
 }
 
+// GetTransactionsByMonth fetches the list of transactions for a specific month from a budget
+// https://api.youneedabudget.com/v1#/Transactions/getTransactionsByMonth
+func (s *Service) GetTransactionsByMonth(budgetID, month string, f *Filter) ([]*Transaction, error) {
+	resModel := struct {
+		Data struct {
+			Transactions []*Transaction `json:"transactions"`
+		} `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/months/%s/transactions", budgetID, month)
+	if f != nil {
+		url = fmt.Sprintf("%s?%s", url, f.ToQuery())
+	}
+
+	if err := s.c.GET(url, &resModel); err != nil {
+		return nil, err
+	}
+
+	return resModel.Data.Transactions, nil
+}
+
 // GetTransactionsByCategory fetches the list of transactions of a specific category
 // from a budget with filtering capabilities
 // https://api.youneedabudget.com/v1#/Transactions/getTransactionsByCategory
@@ -394,4 +415,18 @@ func (s *Service) DeleteScheduledTransaction(budgetID, scheduledTransactionID st
 		return nil, err
 	}
 	return resModel.Data.ScheduledTransaction, nil
+}
+
+// ImportTransactions imports available transactions from all linked accounts for a budget
+// https://api.youneedabudget.com/v1#/Transactions/importTransactions
+func (s *Service) ImportTransactions(budgetID string) (*ImportResult, error) {
+	resModel := struct {
+		Data *ImportResult `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/transactions/import", budgetID)
+	if err := s.c.POST(url, &resModel, nil); err != nil {
+		return nil, err
+	}
+	return resModel.Data, nil
 }

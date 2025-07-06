@@ -245,3 +245,47 @@ func TestService_GetPayeeLocationsByPayee(t *testing.T) {
 
 	assert.Equal(t, expected, locations)
 }
+
+func TestService_UpdatePayee(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	payload := payee.PayloadPayee{
+		Name: "Updated Supermarket Name",
+	}
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/payees/34e88373-ef48-4386-9ab3-7f86c2a8988f"
+	httpmock.RegisterResponder(http.MethodPatch, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "payee": {
+      "id": "34e88373-ef48-4386-9ab3-7f86c2a8988f",
+      "name": "Updated Supermarket Name",
+      "transfer_account_id": null,
+      "deleted": false
+    },
+    "server_knowledge": 1234567890
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	p, err := client.Payee().UpdatePayee(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+		"34e88373-ef48-4386-9ab3-7f86c2a8988f",
+		payload,
+	)
+	assert.NoError(t, err)
+
+	expected := &payee.Payee{
+		ID:                "34e88373-ef48-4386-9ab3-7f86c2a8988f",
+		Name:              "Updated Supermarket Name",
+		TransferAccountID: nil,
+		Deleted:           false,
+	}
+	assert.Equal(t, expected, p)
+}

@@ -19,4 +19,8 @@ const (
 	GoalTargetCategoryBalanceByDate Goal = "TBD"
 	// GoalMonthlyFunding Goal by monthly funding
 	GoalMonthlyFunding Goal = "MF"
+	// GoalPlanYourSpending Plan Your Spending goal
+	GoalPlanYourSpending Goal = "NEED"
+	// GoalDebt Debt goal
+	GoalDebt Goal = "DEBT"
 )

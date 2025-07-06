@@ -208,3 +208,9 @@ type OperationSummary struct {
 	// Transactions If a single transaction was specified, the transaction that was saved
 	Transaction *Transaction `json:"transaction"`
 }
+
+// ImportResult represents the output of importing transactions from linked accounts
+type ImportResult struct {
+	// TransactionIDs The list of Transaction IDs that were imported
+	TransactionIDs []string `json:"transaction_ids"`
+}

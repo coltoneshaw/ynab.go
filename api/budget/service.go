@@ -23,13 +23,25 @@ type Service struct {
 // GetBudgets fetches the list of budgets of the logger in user
 // https://api.youneedabudget.com/v1#/Budgets/getBudgets
 func (s *Service) GetBudgets() ([]*Summary, error) {
+	return s.GetBudgetsWithAccounts(false)
+}
+
+// GetBudgetsWithAccounts fetches the list of budgets of the logger in user
+// with optional account information included
+// https://api.youneedabudget.com/v1#/Budgets/getBudgets
+func (s *Service) GetBudgetsWithAccounts(includeAccounts bool) ([]*Summary, error) {
 	resModel := struct {
 		Data struct {
 			Budgets []*Summary `json:"budgets"`
 		} `json:"data"`
 	}{}
 
-	if err := s.c.GET("/budgets", &resModel); err != nil {
+	url := "/budgets"
+	if includeAccounts {
+		url = "/budgets?include_accounts=true"
+	}
+
+	if err := s.c.GET(url, &resModel); err != nil {
 		return nil, err
 	}
 	return resModel.Data.Budgets, nil

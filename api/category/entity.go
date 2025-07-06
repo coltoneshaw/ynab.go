@@ -36,7 +36,30 @@ type Category struct {
 	// this is the target month for the goal to be completed
 	GoalTargetMonth *api.Date `json:"goal_target_month"`
 	// GoalPercentageComplete the percentage completion of the goal
-	GoalPercentageComplete *uint16 `json:"goal_percentage_complete"`
+	GoalPercentageComplete *int32 `json:"goal_percentage_complete"`
+	// GoalNeedsWholeAmount indicates monthly rollover behavior for "NEED"-type goals
+	// When true: goal asks for target amount in new month ("Set Aside")
+	// When false: uses previous month category funding ("Refill")
+	GoalNeedsWholeAmount *bool `json:"goal_needs_whole_amount"`
+	// GoalDay day offset modifier for goal's due date
+	// For weekly goals (cadence=2): specifies day of week (0=Sunday, 6=Saturday)
+	// For other goals: specifies day of month (1=1st, 31=31st, null=last day)
+	GoalDay *int32 `json:"goal_day"`
+	// GoalCadence the goal cadence (0-14 range)
+	// Values 0,1,2,13: repeats every goal_cadence * goal_cadence_frequency
+	// Values 3-12,14: repeats every goal_cadence (frequency ignored)
+	GoalCadence *int32 `json:"goal_cadence"`
+	// GoalCadenceFrequency goal cadence frequency multiplier
+	// Used with cadence values 0,1,2,13 to determine repeat frequency
+	GoalCadenceFrequency *int32 `json:"goal_cadence_frequency"`
+	// GoalMonthsToBudget number of months left in current goal period (including current month)
+	GoalMonthsToBudget *int32 `json:"goal_months_to_budget"`
+	// GoalUnderFunded amount of funding still needed in current month to stay on track (milliunits)
+	GoalUnderFunded *int64 `json:"goal_under_funded"`
+	// GoalOverallFunded total amount funded towards goal within current goal period (milliunits)
+	GoalOverallFunded *int64 `json:"goal_overall_funded"`
+	// GoalOverallLeft amount of funding still needed to complete goal within current goal period (milliunits)
+	GoalOverallLeft *int64 `json:"goal_overall_left"`
 }
 
 // Group represents a resumed category group for a budget
