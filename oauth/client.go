@@ -5,13 +5,9 @@
 package oauth
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -25,15 +21,13 @@ import (
 	"github.com/brunomvsouza/ynab.go/api/user"
 )
 
-const apiEndpoint = "https://api.youneedabudget.com/v1"
-
 // OAuthClient is a YNAB client that uses OAuth for authentication
 type OAuthClient struct {
 	sync.Mutex
 
 	config       *Config
 	tokenManager *TokenManager
-	httpClient   *http.Client
+	httpClient   *api.HTTPClient
 
 	rateLimiter *api.RateLimitTracker
 
@@ -52,7 +46,7 @@ func NewOAuthClient(config *Config, tokenManager *TokenManager) *OAuthClient {
 	client := &OAuthClient{
 		config:       config,
 		tokenManager: tokenManager,
-		httpClient:   http.DefaultClient,
+		httpClient:   api.NewHTTPClient(),
 		rateLimiter:  api.NewYNABRateLimitTracker(),
 	}
 
@@ -86,8 +80,8 @@ func NewOAuthClientFromStorage(config *Config, storage TokenStorage) (*OAuthClie
 }
 
 // WithHTTPClient sets a custom HTTP client
-func (c *OAuthClient) WithHTTPClient(httpClient *http.Client) *OAuthClient {
-	c.httpClient = httpClient
+func (c *OAuthClient) WithHTTPClient(httpClient *http.Client) api.HTTPClientConfigurer {
+	c.httpClient = c.httpClient.WithHTTPClient(httpClient)
 	c.tokenManager.WithHTTPClient(httpClient)
 	return c
 }
@@ -195,143 +189,87 @@ func (c *OAuthClient) IsAtLimit() bool {
 // HTTP methods (implementing api.ClientReaderWriter interface)
 
 // GET sends a GET request to the YNAB API
-func (c *OAuthClient) GET(url string, responseModel interface{}) error {
+func (c *OAuthClient) GET(url string, responseModel any) error {
 	return c.do(context.Background(), http.MethodGet, url, responseModel, nil)
 }
 
 // POST sends a POST request to the YNAB API
-func (c *OAuthClient) POST(url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) POST(url string, responseModel any, requestBody []byte) error {
 	return c.do(context.Background(), http.MethodPost, url, responseModel, requestBody)
 }
 
 // PUT sends a PUT request to the YNAB API
-func (c *OAuthClient) PUT(url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) PUT(url string, responseModel any, requestBody []byte) error {
 	return c.do(context.Background(), http.MethodPut, url, responseModel, requestBody)
 }
 
 // PATCH sends a PATCH request to the YNAB API
-func (c *OAuthClient) PATCH(url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) PATCH(url string, responseModel any, requestBody []byte) error {
 	return c.do(context.Background(), http.MethodPatch, url, responseModel, requestBody)
 }
 
 // DELETE sends a DELETE request to the YNAB API
-func (c *OAuthClient) DELETE(url string, responseModel interface{}) error {
+func (c *OAuthClient) DELETE(url string, responseModel any) error {
 	return c.do(context.Background(), http.MethodDelete, url, responseModel, nil)
 }
 
 // Context-aware HTTP methods
 
 // GETWithContext sends a GET request with context
-func (c *OAuthClient) GETWithContext(ctx context.Context, url string, responseModel interface{}) error {
+func (c *OAuthClient) GETWithContext(ctx context.Context, url string, responseModel any) error {
 	return c.do(ctx, http.MethodGet, url, responseModel, nil)
 }
 
 // POSTWithContext sends a POST request with context
-func (c *OAuthClient) POSTWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) POSTWithContext(ctx context.Context, url string, responseModel any, requestBody []byte) error {
 	return c.do(ctx, http.MethodPost, url, responseModel, requestBody)
 }
 
 // PUTWithContext sends a PUT request with context
-func (c *OAuthClient) PUTWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) PUTWithContext(ctx context.Context, url string, responseModel any, requestBody []byte) error {
 	return c.do(ctx, http.MethodPut, url, responseModel, requestBody)
 }
 
 // PATCHWithContext sends a PATCH request with context
-func (c *OAuthClient) PATCHWithContext(ctx context.Context, url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) PATCHWithContext(ctx context.Context, url string, responseModel any, requestBody []byte) error {
 	return c.do(ctx, http.MethodPatch, url, responseModel, requestBody)
 }
 
 // DELETEWithContext sends a DELETE request with context
-func (c *OAuthClient) DELETEWithContext(ctx context.Context, url string, responseModel interface{}) error {
+func (c *OAuthClient) DELETEWithContext(ctx context.Context, url string, responseModel any) error {
 	return c.do(ctx, http.MethodDelete, url, responseModel, nil)
 }
 
 // do sends a request to the YNAB API with OAuth authentication
-func (c *OAuthClient) do(ctx context.Context, method, url string, responseModel interface{}, requestBody []byte) error {
+func (c *OAuthClient) do(ctx context.Context, method, url string, responseModel any, requestBody []byte) error {
 	// Get access token
 	accessToken, err := c.tokenManager.GetAccessToken(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get access token: %w", err)
 	}
 
-	// Prepare request
-	fullURL := fmt.Sprintf("%s%s", apiEndpoint, url)
-	req, err := http.NewRequestWithContext(ctx, method, fullURL, bytes.NewBuffer(requestBody))
+	// Try the request with current token
+	err = c.httpClient.DoRequestWithContext(ctx, method, url, responseModel, requestBody, accessToken)
+
+	// If we get an authentication error, try token refresh once
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-
-	// Set headers
-	req.Header.Set("Accept", "application/json")
-	req.Header.Set("Authorization", "Bearer "+accessToken)
-	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
-		req.Header.Set("Content-Type", "application/json")
-	}
-
-	// Send request
-	resp, err := c.httpClient.Do(req)
-	if err != nil {
-		return fmt.Errorf("request failed: %w", err)
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	// Handle 401 Unauthorized - try token refresh once
-	if resp.StatusCode == http.StatusUnauthorized {
-		// Try to refresh token
-		if _, refreshErr := c.tokenManager.RefreshToken(ctx); refreshErr == nil {
-			// Get new access token
-			if newAccessToken, tokenErr := c.tokenManager.GetAccessToken(ctx); tokenErr == nil {
-				// Retry the request with new token
-				req.Header.Set("Authorization", "Bearer "+newAccessToken)
-
-				// Create new request body if needed
-				if requestBody != nil {
-					req.Body = io.NopCloser(bytes.NewBuffer(requestBody))
+		if apiErr, ok := err.(*api.Error); ok && apiErr.ID == "401" {
+			// Try to refresh token
+			if _, refreshErr := c.tokenManager.RefreshToken(ctx); refreshErr == nil {
+				// Get new access token and retry
+				if newAccessToken, tokenErr := c.tokenManager.GetAccessToken(ctx); tokenErr == nil {
+					err = c.httpClient.DoRequestWithContext(ctx, method, url, responseModel, requestBody, newAccessToken)
 				}
-
-				resp, err = c.httpClient.Do(req)
-				if err != nil {
-					return fmt.Errorf("retry request failed: %w", err)
-				}
-				defer func() { _ = resp.Body.Close() }()
 			}
 		}
 	}
 
-	// Read response body
-	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return fmt.Errorf("failed to read response: %w", err)
-	}
-
-	// Handle error responses
-	if resp.StatusCode >= 400 {
-		response := struct {
-			Error *api.Error `json:"error"`
-		}{}
-
-		if err := json.Unmarshal(body, &response); err != nil {
-			// Return a forged *api.Error for ease of use
-			apiError := &api.Error{
-				ID:     strconv.Itoa(resp.StatusCode),
-				Name:   "unknown_api_error",
-				Detail: "Unknown API error",
-			}
-			return apiError
-		}
-
-		return response.Error
+		return err
 	}
 
 	// Record successful request for rate limiting
 	c.rateLimiter.RecordRequest()
-
-	// Parse successful response
-	if responseModel != nil {
-		if err := json.Unmarshal(body, responseModel); err != nil {
-			return fmt.Errorf("failed to parse response: %w", err)
-		}
-	}
 
 	return nil
 }
