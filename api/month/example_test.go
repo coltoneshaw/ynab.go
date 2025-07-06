@@ -13,21 +13,16 @@ import (
 )
 
 //nolint:govet
-func ExampleService_GetMonth() {
+func Example() {
 	c := ynab.NewClient("<valid_ynab_access_token>")
 	d, _ := api.DateFromString("2010-01-01")
 	m, _ := c.Month().GetMonth("<valid_budget_id>", d)
 	fmt.Println(reflect.TypeOf(m))
 
-	// Output: *month.Month
-}
-
-//nolint:govet
-func ExampleService_GetMonths() {
-	c := ynab.NewClient("<valid_ynab_access_token>")
 	f := &api.Filter{LastKnowledgeOfServer: 10}
 	months, _ := c.Month().GetMonths("<valid_budget_id>", f)
 	fmt.Println(reflect.TypeOf(months))
 
-	// Output: *month.SearchResultSnapshot
+	// Output: *month.Month
+	// *month.SearchResultSnapshot
 }

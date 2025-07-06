@@ -1254,3 +1254,259 @@ func TestFilter_ToQuery(t *testing.T) {
 		assert.Equal(t, test.Output, test.Input.ToQuery())
 	}
 }
+
+func TestService_CreateScheduledTransaction(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	payloadDate, err := api.DateFromString("2025-01-15")
+	assert.NoError(t, err)
+
+	payloadPayeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	payloadPayeeName := "Monthly Bill"
+	payloadCategoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	payloadMemo := "Recurring payment"
+	payloadFlagColor := transaction.FlagColorRed
+
+	payload := transaction.PayloadScheduledTransaction{
+		AccountID:  "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+		Date:       payloadDate,
+		Amount:     int64(-15000),
+		Frequency:  transaction.FrequencyMonthly,
+		PayeeID:    &payloadPayeeID,
+		PayeeName:  &payloadPayeeName,
+		CategoryID: &payloadCategoryID,
+		Memo:       &payloadMemo,
+		FlagColor:  &payloadFlagColor,
+	}
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/scheduled_transactions"
+	httpmock.RegisterResponder(http.MethodPost, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(201, `{
+  "data": {
+    "scheduled_transaction": {
+      "id": "new-scheduled-tx-123",
+      "date_first": "2025-01-15",
+      "date_next": "2025-01-15",
+      "frequency": "monthly",
+      "amount": -15000,
+      "memo": "Recurring payment",
+      "flag_color": "red",
+      "account_id": "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+      "account_name": "Checking Account",
+      "payee_id": "0d0e928d-312a-4bcd-89c4-e02f40d1fe46",
+      "payee_name": "Monthly Bill",
+      "category_id": "f3cc4f55-312a-4bcd-89c4-db34379cb1dc",
+      "category_name": "Utilities",
+      "deleted": false,
+      "subtransactions": []
+    }
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	stx, err := client.Transaction().CreateScheduledTransaction(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+		payload,
+	)
+	assert.NoError(t, err)
+
+	expectedDateFirst, err := api.DateFromString("2025-01-15")
+	assert.NoError(t, err)
+	expectedDateNext, err := api.DateFromString("2025-01-15")
+	assert.NoError(t, err)
+	expectedMemo := "Recurring payment"
+	expectedFlagColor := transaction.FlagColorRed
+	expectedPayeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	expectedPayeeName := "Monthly Bill"
+	expectedCategoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	expectedCategoryName := "Utilities"
+
+	expected := &transaction.Scheduled{
+		ID:              "new-scheduled-tx-123",
+		DateFirst:       expectedDateFirst,
+		DateNext:        expectedDateNext,
+		Frequency:       transaction.FrequencyMonthly,
+		Amount:          int64(-15000),
+		Memo:            &expectedMemo,
+		FlagColor:       &expectedFlagColor,
+		AccountID:       "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+		AccountName:     "Checking Account",
+		PayeeID:         &expectedPayeeID,
+		PayeeName:       &expectedPayeeName,
+		CategoryID:      &expectedCategoryID,
+		CategoryName:    &expectedCategoryName,
+		Deleted:         false,
+		SubTransactions: []*transaction.ScheduledSubTransaction{},
+	}
+	assert.Equal(t, expected, stx)
+}
+
+func TestService_UpdateScheduledTransaction(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	payloadDate, err := api.DateFromString("2025-02-15")
+	assert.NoError(t, err)
+
+	payloadPayeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	payloadPayeeName := "Updated Monthly Bill"
+	payloadCategoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	payloadMemo := "Updated recurring payment"
+	payloadFlagColor := transaction.FlagColorBlue
+
+	payload := transaction.PayloadScheduledTransaction{
+		AccountID:  "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+		Date:       payloadDate,
+		Amount:     int64(-17500),
+		Frequency:  transaction.FrequencyMonthly,
+		PayeeID:    &payloadPayeeID,
+		PayeeName:  &payloadPayeeName,
+		CategoryID: &payloadCategoryID,
+		Memo:       &payloadMemo,
+		FlagColor:  &payloadFlagColor,
+	}
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/scheduled_transactions/existing-scheduled-tx-123"
+	httpmock.RegisterResponder(http.MethodPut, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "scheduled_transaction": {
+      "id": "existing-scheduled-tx-123",
+      "date_first": "2025-02-15",
+      "date_next": "2025-02-15",
+      "frequency": "monthly",
+      "amount": -17500,
+      "memo": "Updated recurring payment",
+      "flag_color": "blue",
+      "account_id": "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+      "account_name": "Checking Account",
+      "payee_id": "0d0e928d-312a-4bcd-89c4-e02f40d1fe46",
+      "payee_name": "Updated Monthly Bill",
+      "category_id": "f3cc4f55-312a-4bcd-89c4-db34379cb1dc",
+      "category_name": "Utilities",
+      "deleted": false,
+      "subtransactions": []
+    }
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	stx, err := client.Transaction().UpdateScheduledTransaction(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+		"existing-scheduled-tx-123",
+		payload,
+	)
+	assert.NoError(t, err)
+
+	expectedDateFirst, err := api.DateFromString("2025-02-15")
+	assert.NoError(t, err)
+	expectedDateNext, err := api.DateFromString("2025-02-15")
+	assert.NoError(t, err)
+	expectedMemo := "Updated recurring payment"
+	expectedFlagColor := transaction.FlagColorBlue
+	expectedPayeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	expectedPayeeName := "Updated Monthly Bill"
+	expectedCategoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	expectedCategoryName := "Utilities"
+
+	expected := &transaction.Scheduled{
+		ID:              "existing-scheduled-tx-123",
+		DateFirst:       expectedDateFirst,
+		DateNext:        expectedDateNext,
+		Frequency:       transaction.FrequencyMonthly,
+		Amount:          int64(-17500),
+		Memo:            &expectedMemo,
+		FlagColor:       &expectedFlagColor,
+		AccountID:       "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+		AccountName:     "Checking Account",
+		PayeeID:         &expectedPayeeID,
+		PayeeName:       &expectedPayeeName,
+		CategoryID:      &expectedCategoryID,
+		CategoryName:    &expectedCategoryName,
+		Deleted:         false,
+		SubTransactions: []*transaction.ScheduledSubTransaction{},
+	}
+	assert.Equal(t, expected, stx)
+}
+
+func TestService_DeleteScheduledTransaction(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/aa248caa-eed7-4575-a990-717386438d2c/scheduled_transactions/to-delete-scheduled-tx-123"
+	httpmock.RegisterResponder(http.MethodDelete, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "scheduled_transaction": {
+      "id": "to-delete-scheduled-tx-123",
+      "date_first": "2025-01-15",
+      "date_next": "2025-01-15",
+      "frequency": "monthly",
+      "amount": -15000,
+      "memo": "Deleted recurring payment",
+      "flag_color": "red",
+      "account_id": "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+      "account_name": "Checking Account",
+      "payee_id": "0d0e928d-312a-4bcd-89c4-e02f40d1fe46",
+      "payee_name": "Deleted Bill",
+      "category_id": "f3cc4f55-312a-4bcd-89c4-db34379cb1dc",
+      "category_name": "Utilities",
+      "deleted": true,
+      "subtransactions": []
+    }
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	stx, err := client.Transaction().DeleteScheduledTransaction(
+		"aa248caa-eed7-4575-a990-717386438d2c",
+		"to-delete-scheduled-tx-123",
+	)
+	assert.NoError(t, err)
+
+	expectedDateFirst, err := api.DateFromString("2025-01-15")
+	assert.NoError(t, err)
+	expectedDateNext, err := api.DateFromString("2025-01-15")
+	assert.NoError(t, err)
+	expectedMemo := "Deleted recurring payment"
+	expectedFlagColor := transaction.FlagColorRed
+	expectedPayeeID := "0d0e928d-312a-4bcd-89c4-e02f40d1fe46"
+	expectedPayeeName := "Deleted Bill"
+	expectedCategoryID := "f3cc4f55-312a-4bcd-89c4-db34379cb1dc"
+	expectedCategoryName := "Utilities"
+
+	expected := &transaction.Scheduled{
+		ID:              "to-delete-scheduled-tx-123",
+		DateFirst:       expectedDateFirst,
+		DateNext:        expectedDateNext,
+		Frequency:       transaction.FrequencyMonthly,
+		Amount:          int64(-15000),
+		Memo:            &expectedMemo,
+		FlagColor:       &expectedFlagColor,
+		AccountID:       "09eaca5e-312a-4bcd-89c4-828fb90638f2",
+		AccountName:     "Checking Account",
+		PayeeID:         &expectedPayeeID,
+		PayeeName:       &expectedPayeeName,
+		CategoryID:      &expectedCategoryID,
+		CategoryName:    &expectedCategoryName,
+		Deleted:         true,
+		SubTransactions: []*transaction.ScheduledSubTransaction{},
+	}
+	assert.Equal(t, expected, stx)
+}

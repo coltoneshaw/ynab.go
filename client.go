@@ -60,7 +60,7 @@ type client struct {
 
 	accessToken string
 
-	client    *http.Client
+	client *http.Client
 
 	user        *user.Service
 	budget      *budget.Service
@@ -149,7 +149,7 @@ func (c *client) do(method, url string, responseModel interface{}, requestBody [
 	if err != nil {
 		return err
 	}
-	defer res.Body.Close()
+	defer func() { _ = res.Body.Close() }()
 
 	body, err := io.ReadAll(res.Body)
 	if err != nil {

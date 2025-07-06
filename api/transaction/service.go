@@ -324,3 +324,74 @@ func (f *Filter) ToQuery() string {
 	}
 	return strings.Join(pairs, "&")
 }
+
+// CreateScheduledTransaction creates a new scheduled transaction for a budget
+// https://api.youneedabudget.com/v1#/Scheduled_Transactions/createScheduledTransaction
+func (s *Service) CreateScheduledTransaction(budgetID string, p PayloadScheduledTransaction) (*Scheduled, error) {
+	payload := struct {
+		ScheduledTransaction *PayloadScheduledTransaction `json:"scheduled_transaction"`
+	}{
+		&p,
+	}
+
+	buf, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resModel := struct {
+		Data struct {
+			ScheduledTransaction *Scheduled `json:"scheduled_transaction"`
+		} `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/scheduled_transactions", budgetID)
+	if err := s.c.POST(url, &resModel, buf); err != nil {
+		return nil, err
+	}
+	return resModel.Data.ScheduledTransaction, nil
+}
+
+// UpdateScheduledTransaction updates a scheduled transaction for a budget
+// https://api.youneedabudget.com/v1#/Scheduled_Transactions/updateScheduledTransaction
+func (s *Service) UpdateScheduledTransaction(budgetID, scheduledTransactionID string, p PayloadScheduledTransaction) (*Scheduled, error) {
+	payload := struct {
+		ScheduledTransaction *PayloadScheduledTransaction `json:"scheduled_transaction"`
+	}{
+		&p,
+	}
+
+	buf, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resModel := struct {
+		Data struct {
+			ScheduledTransaction *Scheduled `json:"scheduled_transaction"`
+		} `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/scheduled_transactions/%s", budgetID, scheduledTransactionID)
+	if err := s.c.PUT(url, &resModel, buf); err != nil {
+		return nil, err
+	}
+	return resModel.Data.ScheduledTransaction, nil
+}
+
+// DeleteScheduledTransaction deletes a scheduled transaction from a budget
+// https://api.youneedabudget.com/v1#/Scheduled_Transactions/deleteScheduledTransaction
+func (s *Service) DeleteScheduledTransaction(budgetID, scheduledTransactionID string) (*Scheduled, error) {
+	resModel := struct {
+		Data struct {
+			ScheduledTransaction *Scheduled `json:"scheduled_transaction"`
+		} `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/scheduled_transactions/%s", budgetID, scheduledTransactionID)
+	err := s.c.DELETE(url, &resModel)
+	if err != nil {
+		return nil, err
+	}
+	return resModel.Data.ScheduledTransaction, nil
+}

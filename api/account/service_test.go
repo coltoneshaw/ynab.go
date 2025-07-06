@@ -121,3 +121,59 @@ func TestService_GetAccount(t *testing.T) {
 	}
 	assert.Equal(t, expected, a)
 }
+
+func TestService_CreateAccount(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	payload := account.PayloadAccount{
+		Name:    "My New Account",
+		Type:    account.TypeChecking,
+		Balance: 150000,
+	}
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/accounts"
+	httpmock.RegisterResponder(http.MethodPost, url,
+		func(req *http.Request) (*http.Response, error) {
+			res := httpmock.NewStringResponse(201, `{
+  "data": {
+    "account": {
+      "id": "new-account-id-123",
+      "name": "My New Account",
+      "type": "checking",
+      "on_budget": true,
+      "closed": false,
+      "note": null,
+      "balance": 150000,
+      "cleared_balance": 150000,
+      "uncleared_balance": 0,
+      "deleted": false
+    }
+  }
+}
+		`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	a, err := client.Account().CreateAccount(
+		"bbdccdb0-9007-42aa-a6fe-02a3e94476be",
+		payload,
+	)
+	assert.NoError(t, err)
+
+	expected := &account.Account{
+		ID:               "new-account-id-123",
+		Name:             "My New Account",
+		Type:             account.TypeChecking,
+		OnBudget:         true,
+		Note:             nil,
+		Closed:           false,
+		Balance:          int64(150000),
+		ClearedBalance:   int64(150000),
+		UnclearedBalance: int64(0),
+		Deleted:          false,
+	}
+	assert.Equal(t, expected, a)
+}

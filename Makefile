@@ -2,9 +2,28 @@
 
 .PHONY: lint test coverage help
 
-lint: ## Lint the files
-	@go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.50.1
-	@golangci-lint run
+GO_PACKAGES=$(shell go list ./...)
+GO ?= $(shell command -v go 2> /dev/null)
+export GOBIN ?= $(PWD)/bin
+GOLANGCI_LINT_VERSION=v2.2.1
+
+# Install go tools
+install-go-tools:
+	@mkdir -p $(GOBIN)
+	@curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(GOBIN) $(GOLANGCI_LINT_VERSION)
+	@GOBIN=$(GOBIN) $(GO) install mvdan.cc/gofumpt@latest
+
+lint: install-go-tools
+	$(GO) fmt ./...
+	$(GO) vet ./...
+	$(GOBIN)/golangci-lint run ./...
+
+# Go validation (format, vet, lint, test, coverage)
+go-check: install-go-tools
+	$(GO) fmt ./...
+	$(GO) vet ./...
+	$(GOBIN)/golangci-lint run ./...
+	$(GO) test ./...
 
 test: ## Run unittests
 	@go test -race -short ./...

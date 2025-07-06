@@ -40,3 +40,23 @@ type PayloadTransaction struct {
 	// be 'YNAB:-294230:2015-12-30:2’.
 	ImportID *string `json:"import_id"`
 }
+
+// PayloadScheduledTransaction is the payload contract for saving a scheduled transaction, new or existent
+type PayloadScheduledTransaction struct {
+	AccountID string   `json:"account_id"`
+	Date      api.Date `json:"date"`
+	// Amount The scheduled transaction amount in milliunits format
+	Amount    int64              `json:"amount"`
+	Frequency ScheduledFrequency `json:"frequency"`
+
+	// PayeeID Transfer payees are not permitted and will be ignored if supplied
+	PayeeID *string `json:"payee_id"`
+	// PayeeName If the payee name is provided and payee ID has a null value, the
+	// payee name value will be used to resolve the payee by either (1) a matching
+	// payee rename rule or (2) a payee with the same name or (3) creation of a new payee
+	PayeeName *string `json:"payee_name"`
+	// CategoryID Credit Card Payment categories are not permitted and will be ignored if supplied.
+	CategoryID *string    `json:"category_id"`
+	Memo       *string    `json:"memo"`
+	FlagColor  *FlagColor `json:"flag_color"`
+}

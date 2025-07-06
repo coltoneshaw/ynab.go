@@ -111,7 +111,7 @@ func (s *Service) updateCategoryForMonth(budgetID, categoryID, month string,
 	p PayloadMonthCategory) (*Category, error) {
 
 	payload := struct {
-		MonthCategory *PayloadMonthCategory `json:"month_category"`
+		Category *PayloadMonthCategory `json:"category"`
 	}{
 		&p,
 	}
@@ -130,7 +130,35 @@ func (s *Service) updateCategoryForMonth(budgetID, categoryID, month string,
 	url := fmt.Sprintf("/budgets/%s/months/%s/categories/%s", budgetID,
 		month, categoryID)
 
-	if err := s.c.PUT(url, &resModel, buf); err != nil {
+	if err := s.c.PATCH(url, &resModel, buf); err != nil {
+		return nil, err
+	}
+	return resModel.Data.Category, nil
+}
+
+// UpdateCategory updates a category
+// https://api.youneedabudget.com/v1#/Categories/updateCategory
+func (s *Service) UpdateCategory(budgetID, categoryID string, p PayloadCategory) (*Category, error) {
+	payload := struct {
+		Category *PayloadCategory `json:"category"`
+	}{
+		&p,
+	}
+
+	buf, err := json.Marshal(&payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resModel := struct {
+		Data struct {
+			Category *Category `json:"category"`
+		} `json:"data"`
+	}{}
+
+	url := fmt.Sprintf("/budgets/%s/categories/%s", budgetID, categoryID)
+
+	if err := s.c.PATCH(url, &resModel, buf); err != nil {
 		return nil, err
 	}
 	return resModel.Data.Category, nil
