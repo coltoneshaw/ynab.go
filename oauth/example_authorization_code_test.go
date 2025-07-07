@@ -56,11 +56,11 @@ func ExampleAuthorizationCodeFlow() {
 
 func ExampleAuthorizationCodeFlow_withBuilder() {
 	// Using the client builder for more control
-	config := oauth.NewConfig(
-		"your-client-id",
-		"your-client-secret",
-		"https://yourapp.com/oauth/callback",
-	)
+	config := oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     "your-client-id",
+		ClientSecret: "your-client-secret",
+		RedirectURI:  "https://yourapp.com/oauth/callback",
+	})
 
 	// Build client with file storage and refresh callback
 	client, err := ynab.NewOAuthClientBuilder(config).
@@ -106,11 +106,11 @@ func ExampleAuthorizationCodeFlow_withBuilder() {
 
 func ExampleAuthorizationCodeFlow_serverExample() {
 	// Example of how to integrate with an HTTP server
-	config := oauth.NewConfig(
-		"your-client-id",
-		"your-client-secret",
-		"https://yourapp.com/oauth/callback",
-	)
+	config := oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     "your-client-id",
+		ClientSecret: "your-client-secret",
+		RedirectURI:  "https://yourapp.com/oauth/callback",
+	})
 
 	flow := oauth.NewAuthorizationCodeFlow(config).
 		WithTokenManager(oauth.NewTokenManager(config, oauth.NewFileStorage("tokens.json")))

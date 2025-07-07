@@ -61,11 +61,11 @@ func ExampleImplicitGrantFlow() {
 
 func ExampleImplicitGrantFlow_jsApp() {
 	// Example for JavaScript/SPA applications
-	config := oauth.NewConfig(
-		"your-client-id",
-		"", // No secret for client-side apps
-		"https://yourapp.com/callback",
-	)
+	config := oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     "your-client-id",
+		ClientSecret: "", // No secret for client-side apps
+		RedirectURI:  "https://yourapp.com/callback",
+	})
 
 	flow := oauth.NewImplicitGrantFlow(config)
 
@@ -97,11 +97,11 @@ func ExampleImplicitGrantFlow_jsApp() {
 
 func ExampleImplicitGrantFlow_mobileApp() {
 	// Example for mobile applications using implicit grant
-	config := oauth.NewConfig(
-		"your-mobile-client-id",
-		"",
-		"https://yourapp.com/mobile/callback", // Or custom URL scheme like "yourapp://oauth"
-	)
+	config := oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     "your-mobile-client-id",
+		ClientSecret: "",
+		RedirectURI:  "https://yourapp.com/mobile/callback", // Or custom URL scheme like "yourapp://oauth"
+	})
 
 	flow := oauth.NewImplicitGrantFlow(config)
 
@@ -142,7 +142,11 @@ func ExampleImplicitGrantFlow_mobileApp() {
 }
 
 func ExampleFlowManager_recommendedFlow() {
-	config := oauth.NewConfig("client-id", "client-secret", "redirect-uri")
+	config := oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "redirect-uri",
+	})
 
 	// Get recommendation for flow type
 	isServerSide := true

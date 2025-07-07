@@ -119,7 +119,11 @@ client, err := ynab.NewOAuthClientFromToken(config, token)
 ### Configuration
 
 ```go
-config := oauth.NewConfig("client-id", "client-secret", "redirect-uri")
+config := oauth.NewOAuthConfig(oauth.Config{
+    ClientID:     "client-id",
+    ClientSecret: "client-secret",
+    RedirectURI:  "redirect-uri",
+})
 
 // Add scopes
 config.WithReadOnlyScope()
@@ -330,7 +334,11 @@ func handleCallback(w http.ResponseWriter, r *http.Request) {
 
 ```go
 func authenticateUser() *oauth.OAuthClient {
-    config := oauth.NewConfig(clientID, clientSecret, "http://localhost:8080/callback")
+    config := oauth.NewOAuthConfig(oauth.Config{
+        ClientID:     clientID,
+        ClientSecret: clientSecret,
+        RedirectURI:  "http://localhost:8080/callback",
+    })
     
     // Start local server for callback
     server := &http.Server{Addr: ":8080"}
@@ -366,7 +374,11 @@ func authenticateUser() *oauth.OAuthClient {
 
 ```go
 // Use implicit grant for mobile apps
-config := oauth.NewConfig(clientID, "", "yourapp://oauth/callback")
+config := oauth.NewOAuthConfig(oauth.Config{
+    ClientID:     clientID,
+    ClientSecret: "", // No secret for mobile apps
+    RedirectURI:  "yourapp://oauth/callback",
+})
 flow := oauth.NewImplicitGrantFlow(config)
 
 // Open authorization URL in system browser
@@ -529,7 +541,11 @@ func TestOAuthFlow(t *testing.T) {
             "expires_in": 7200
         }`))
     
-    config := oauth.NewConfig("test-client", "test-secret", "http://test.com/callback")
+    config := oauth.NewOAuthConfig(oauth.Config{
+        ClientID:     "test-client",
+        ClientSecret: "test-secret",
+        RedirectURI:  "http://test.com/callback",
+    })
     flow := oauth.NewAuthorizationCodeFlow(config)
     
     // Test authorization URL generation
@@ -635,11 +651,11 @@ client := ynab.NewOAuthClientBuilder(config).
 Configure OAuth settings via environment:
 
 ```go
-config := oauth.NewConfig(
-    os.Getenv("YNAB_CLIENT_ID"),
-    os.Getenv("YNAB_CLIENT_SECRET"),
-    os.Getenv("YNAB_REDIRECT_URI"),
-)
+config := oauth.NewOAuthConfig(oauth.Config{
+    ClientID:     os.Getenv("YNAB_CLIENT_ID"),
+    ClientSecret: os.Getenv("YNAB_CLIENT_SECRET"),
+    RedirectURI:  os.Getenv("YNAB_REDIRECT_URI"),
+})
 
 if os.Getenv("YNAB_DEBUG") == "true" {
     // Enable debug logging
@@ -657,7 +673,11 @@ If you're currently using the library with static access tokens:
 client := ynab.NewClient("static-access-token")
 
 // New OAuth approach
-config := oauth.NewConfig(clientID, clientSecret, redirectURI)
+config := oauth.NewOAuthConfig(oauth.Config{
+    ClientID:     clientID,
+    ClientSecret: clientSecret,
+    RedirectURI:  redirectURI,
+})
 client, err := ynab.NewOAuthClientFromStorage(config, storage)
 ```
 

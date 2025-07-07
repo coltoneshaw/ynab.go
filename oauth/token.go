@@ -184,7 +184,7 @@ func (tm *TokenManager) exchangeToken(ctx context.Context, tokenRequest *TokenRe
 	}
 
 	// Create request
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tm.config.TokenURL, bytes.NewBufferString(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tm.config.tokenURL, bytes.NewBufferString(data.Encode()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}

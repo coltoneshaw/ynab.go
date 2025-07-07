@@ -21,22 +21,27 @@ type Config struct {
 	// Scopes defines the permissions requested
 	Scopes []Scope
 
-	// AuthorizeURL is the authorization endpoint URL (defaults to YNAB's)
-	AuthorizeURL string
+	// authorizeURL is the authorization endpoint URL (always YNAB's)
+	authorizeURL string
 
-	// TokenURL is the token endpoint URL (defaults to YNAB's)
-	TokenURL string
+	// tokenURL is the token endpoint URL (always YNAB's)
+	tokenURL string
 }
 
-// NewConfig creates a new OAuth configuration
-func NewConfig(clientID, clientSecret, redirectURI string) *Config {
+// NewOAuthConfig creates a new OAuth configuration
+func NewOAuthConfig(config Config) *Config {
+	// Set defaults for scopes if not provided
+	if len(config.Scopes) == 0 {
+		config.Scopes = []Scope{}
+	}
+
 	return &Config{
-		ClientID:     clientID,
-		ClientSecret: clientSecret,
-		RedirectURI:  redirectURI,
-		Scopes:       []Scope{},
-		AuthorizeURL: AuthorizeURL,
-		TokenURL:     TokenURL,
+		ClientID:     config.ClientID,
+		ClientSecret: config.ClientSecret,
+		RedirectURI:  config.RedirectURI,
+		Scopes:       config.Scopes,
+		authorizeURL: AuthorizeURL,
+		tokenURL:     TokenURL,
 	}
 }
 
@@ -107,7 +112,7 @@ func (c *Config) buildAuthorizeURL(responseType ResponseType, state string) stri
 		params.Set("state", state)
 	}
 
-	return fmt.Sprintf("%s?%s", c.AuthorizeURL, params.Encode())
+	return fmt.Sprintf("%s?%s", c.authorizeURL, params.Encode())
 }
 
 // Validate checks if the configuration is valid
@@ -129,11 +134,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid redirect URI: %w", err)
 	}
 
-	if c.AuthorizeURL == "" {
+	if c.authorizeURL == "" {
 		return fmt.Errorf("authorize URL is required")
 	}
 
-	if c.TokenURL == "" {
+	if c.tokenURL == "" {
 		return fmt.Errorf("token URL is required")
 	}
 

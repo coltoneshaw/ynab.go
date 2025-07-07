@@ -179,7 +179,11 @@ func (c *client) do(method, url string, responseModel any, requestBody []byte) e
 
 // NewOAuthConfig creates a new OAuth configuration
 func NewOAuthConfig(clientID, clientSecret, redirectURI string) *oauth.Config {
-	return oauth.NewConfig(clientID, clientSecret, redirectURI)
+	return oauth.NewOAuthConfig(oauth.Config{
+		ClientID:     clientID,
+		ClientSecret: clientSecret,
+		RedirectURI:  redirectURI,
+	})
 }
 
 // NewOAuthClient creates a new OAuth-enabled YNAB client

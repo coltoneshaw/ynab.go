@@ -12,7 +12,11 @@ import (
 )
 
 func TestAuthorizationCodeFlow_GetAuthorizationURL(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	authURL, err := flow.GetAuthorizationURL("test-state")
@@ -55,7 +59,11 @@ func TestAuthorizationCodeFlow_HandleCallback(t *testing.T) {
 		},
 	)
 
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	callbackURL := "https://example.com/callback?code=auth-code-123&state=test-state"
@@ -71,7 +79,11 @@ func TestAuthorizationCodeFlow_HandleCallback(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlow_HandleCallback_StateValidation(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	callbackURL := "https://example.com/callback?code=auth-code-123&state=wrong-state"
@@ -83,7 +95,11 @@ func TestAuthorizationCodeFlow_HandleCallback_StateValidation(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlow_HandleCallback_ErrorResponse(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	callbackURL := "https://example.com/callback?error=access_denied&error_description=User%20denied%20access&state=test-state"
@@ -98,7 +114,11 @@ func TestAuthorizationCodeFlow_HandleCallback_ErrorResponse(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlow_HandleCallback_NoCode(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	callbackURL := "https://example.com/callback?state=test-state"
@@ -123,7 +143,11 @@ func TestAuthorizationCodeFlow_HandleCallbackWithContext(t *testing.T) {
 		},
 	)
 
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewAuthorizationCodeFlow(config)
 
 	ctx := context.Background()
@@ -136,7 +160,11 @@ func TestAuthorizationCodeFlow_HandleCallbackWithContext(t *testing.T) {
 }
 
 func TestImplicitGrantFlow_GetAuthorizationURL(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewImplicitGrantFlow(config)
 
 	authURL, err := flow.GetAuthorizationURL("test-state")
@@ -153,7 +181,11 @@ func TestImplicitGrantFlow_GetAuthorizationURL(t *testing.T) {
 }
 
 func TestImplicitGrantFlow_HandleCallback(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewImplicitGrantFlow(config)
 
 	callbackURL := "https://example.com/callback#access_token=token123&token_type=Bearer&expires_in=7200&state=test-state"
@@ -167,7 +199,11 @@ func TestImplicitGrantFlow_HandleCallback(t *testing.T) {
 }
 
 func TestImplicitGrantFlow_HandleCallback_NoToken(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	flow := NewImplicitGrantFlow(config)
 
 	callbackURL := "https://example.com/callback#state=test-state"
@@ -179,7 +215,11 @@ func TestImplicitGrantFlow_HandleCallback_NoToken(t *testing.T) {
 }
 
 func TestFlowManager(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	manager := NewFlowManager(config)
 
 	// Test authorization code flow
@@ -197,7 +237,11 @@ func TestFlowManager(t *testing.T) {
 }
 
 func TestFlowManager_StartAuthorizationCodeFlow(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	manager := NewFlowManager(config)
 
 	authURL, state, err := manager.StartAuthorizationCodeFlow()
@@ -210,7 +254,11 @@ func TestFlowManager_StartAuthorizationCodeFlow(t *testing.T) {
 }
 
 func TestFlowManager_StartImplicitGrantFlow(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	manager := NewFlowManager(config)
 
 	authURL, state, err := manager.StartImplicitGrantFlow()
@@ -235,7 +283,11 @@ func TestFlowManager_CompleteAuthorizationCodeFlow(t *testing.T) {
 		},
 	)
 
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	manager := NewFlowManager(config)
 
 	ctx := context.Background()
@@ -248,7 +300,11 @@ func TestFlowManager_CompleteAuthorizationCodeFlow(t *testing.T) {
 }
 
 func TestFlowManager_CompleteImplicitGrantFlow(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	manager := NewFlowManager(config)
 
 	callbackURL := "https://example.com/callback#access_token=token123&token_type=Bearer"
@@ -260,7 +316,11 @@ func TestFlowManager_CompleteImplicitGrantFlow(t *testing.T) {
 }
 
 func TestFlowManager_WithDefaultStorage(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	storage := NewMemoryStorage()
 
 	manager := NewFlowManager(config).WithDefaultStorage(storage)
@@ -270,7 +330,11 @@ func TestFlowManager_WithDefaultStorage(t *testing.T) {
 }
 
 func TestFlowManager_WithHTTPClient(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	httpClient := &http.Client{}
 
 	manager := NewFlowManager(config).WithHTTPClient(httpClient)
@@ -320,7 +384,11 @@ func TestRecommendFlow(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlow_WithTokenManager(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "redirect-uri")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "redirect-uri",
+	})
 	tokenManager := NewTokenManager(config, NewMemoryStorage())
 
 	flow := NewAuthorizationCodeFlow(config).WithTokenManager(tokenManager)
@@ -329,7 +397,11 @@ func TestAuthorizationCodeFlow_WithTokenManager(t *testing.T) {
 }
 
 func TestAuthorizationCodeFlow_WithHTTPClient(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "redirect-uri")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "redirect-uri",
+	})
 	httpClient := &http.Client{}
 
 	flow := NewAuthorizationCodeFlow(config).WithHTTPClient(httpClient)

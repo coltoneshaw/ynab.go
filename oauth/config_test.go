@@ -8,19 +8,27 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewConfig(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+func TestNewOAuthConfig(t *testing.T) {
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	assert.Equal(t, "client-id", config.ClientID)
 	assert.Equal(t, "client-secret", config.ClientSecret)
 	assert.Equal(t, "https://example.com/callback", config.RedirectURI)
-	assert.Equal(t, AuthorizeURL, config.AuthorizeURL)
-	assert.Equal(t, TokenURL, config.TokenURL)
+	assert.Equal(t, AuthorizeURL, config.authorizeURL)
+	assert.Equal(t, TokenURL, config.tokenURL)
 	assert.Empty(t, config.Scopes)
 }
 
 func TestConfig_WithReadOnlyScope(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	result := config.WithReadOnlyScope()
 
@@ -48,7 +56,11 @@ func TestConfig_GetScopeString(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+			config := NewOAuthConfig(Config{
+				ClientID:     "client-id",
+				ClientSecret: "client-secret",
+				RedirectURI:  "https://example.com/callback",
+			})
 			tt.setup(config)
 			assert.Equal(t, tt.expected, config.GetScopeString())
 		})
@@ -56,7 +68,11 @@ func TestConfig_GetScopeString(t *testing.T) {
 }
 
 func TestConfig_AuthCodeURL(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	config.WithReadOnlyScope()
 
 	authURL := config.AuthCodeURL("test-state")
@@ -76,7 +92,11 @@ func TestConfig_AuthCodeURL(t *testing.T) {
 }
 
 func TestConfig_ImplicitGrantURL(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	authURL := config.ImplicitGrantURL("test-state")
 
@@ -88,7 +108,11 @@ func TestConfig_ImplicitGrantURL(t *testing.T) {
 }
 
 func TestConfig_GenerateState(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	state1, err1 := config.GenerateState()
 	state2, err2 := config.GenerateState()
@@ -102,14 +126,22 @@ func TestConfig_GenerateState(t *testing.T) {
 }
 
 func TestConfig_ValidateRedirectURI(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	assert.True(t, config.ValidateRedirectURI("https://example.com/callback"))
 	assert.False(t, config.ValidateRedirectURI("https://different.com/callback"))
 }
 
 func TestConfig_ValidateState(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	assert.True(t, config.ValidateState("test-state", "test-state"))
 	assert.False(t, config.ValidateState("test-state", "different-state"))
@@ -129,8 +161,8 @@ func TestConfig_Validate(t *testing.T) {
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 				RedirectURI:  "https://example.com/callback",
-				AuthorizeURL: AuthorizeURL,
-				TokenURL:     TokenURL,
+				authorizeURL: AuthorizeURL,
+				tokenURL:     TokenURL,
 			},
 			shouldError: false,
 		},
@@ -139,8 +171,8 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				ClientSecret: "client-secret",
 				RedirectURI:  "https://example.com/callback",
-				AuthorizeURL: AuthorizeURL,
-				TokenURL:     TokenURL,
+				authorizeURL: AuthorizeURL,
+				tokenURL:     TokenURL,
 			},
 			shouldError: true,
 			errorMsg:    "client ID is required",
@@ -150,8 +182,8 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				ClientID:     "client-id",
 				RedirectURI:  "https://example.com/callback",
-				AuthorizeURL: AuthorizeURL,
-				TokenURL:     TokenURL,
+				authorizeURL: AuthorizeURL,
+				tokenURL:     TokenURL,
 			},
 			shouldError: true,
 			errorMsg:    "client secret is required",
@@ -161,8 +193,8 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
-				AuthorizeURL: AuthorizeURL,
-				TokenURL:     TokenURL,
+				authorizeURL: AuthorizeURL,
+				tokenURL:     TokenURL,
 			},
 			shouldError: true,
 			errorMsg:    "redirect URI is required",
@@ -173,8 +205,8 @@ func TestConfig_Validate(t *testing.T) {
 				ClientID:     "client-id",
 				ClientSecret: "client-secret",
 				RedirectURI:  ":",
-				AuthorizeURL: AuthorizeURL,
-				TokenURL:     TokenURL,
+				authorizeURL: AuthorizeURL,
+				tokenURL:     TokenURL,
 			},
 			shouldError: true,
 			errorMsg:    "invalid redirect URI",
@@ -196,7 +228,11 @@ func TestConfig_Validate(t *testing.T) {
 }
 
 func TestConfig_ParseCallbackURL(t *testing.T) {
-	config := NewConfig("client-id", "client-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 
 	tests := []struct {
 		name        string
@@ -317,7 +353,11 @@ func TestCallbackResult_ToToken(t *testing.T) {
 }
 
 func TestConfig_buildAuthorizeURL(t *testing.T) {
-	config := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	config.WithReadOnlyScope()
 
 	url := config.buildAuthorizeURL(ResponseTypeCode, "test-state")
@@ -329,7 +369,11 @@ func TestConfig_buildAuthorizeURL(t *testing.T) {
 	assert.Contains(t, url, "scope=read-only")
 
 	// Test without scope (full access)
-	config2 := NewConfig("test-client", "test-secret", "https://example.com/callback")
+	config2 := NewOAuthConfig(Config{
+		ClientID:     "test-client",
+		ClientSecret: "test-secret",
+		RedirectURI:  "https://example.com/callback",
+	})
 	url2 := config2.buildAuthorizeURL(ResponseTypeCode, "test-state")
 	assert.NotContains(t, url2, "scope=")
 }
