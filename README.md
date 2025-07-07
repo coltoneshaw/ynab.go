@@ -4,6 +4,15 @@
 
 This is an UNOFFICIAL Go client for the YNAB API. It covers 100% of the resources made available by the [YNAB API](https://api.youneedabudget.com).
 
+## 📚 Quick Navigation
+
+- [🚀 **Quick Start**](#quick-start) - Get up and running fast
+- [🔐 **Authentication**](#authentication-methods) - OAuth 2.0 and Personal Access Tokens  
+- [📋 **Usage Examples**](#usage-examples) - Working with budgets, accounts, transactions
+- [🚨 **Error Handling**](#error-handling) - Type-safe error constants and patterns
+- [⚙️ **Advanced Usage**](#advanced-usage) - Custom HTTP clients, production patterns
+- [📊 **Rate Limiting**](#rate-limiting) - Built-in rate tracking and management
+
 ## Features
 
 - ✅ **Complete API Coverage** - All 36 YNAB API endpoints implemented
@@ -13,6 +22,7 @@ This is an UNOFFICIAL Go client for the YNAB API. It covers 100% of the resource
 - 🧪 **Comprehensive Testing** - 90%+ test coverage
 - 🛡️ **Security Features** - CSRF protection, secure token handling
 - 🏗️ **Clean Architecture** - Interface-based design for easy testing
+- 🚨 **Enhanced Error Handling** - Type-safe error constants and helper methods for all YNAB API errors
 
 ## Installation
 
@@ -331,31 +341,207 @@ client := ynab.NewClient("token")
 // Note: Custom HTTP clients for token-based clients require modifying the client after creation
 ```
 
-### Error Handling
+## Error Handling
+
+The library provides **enhanced error handling** with type-safe constants and helper methods for all documented YNAB API errors. This makes it easy to build robust applications that can gracefully handle different error scenarios.
+
+### Basic Error Handling
 
 ```go
+import "github.com/brunomvsouza/ynab.go/api"
+
 user, err := client.User().GetUser()
 if err != nil {
-    // Check for specific API errors
     if apiErr, ok := err.(*api.Error); ok {
-        switch apiErr.ID {
-        case "401":
-            log.Println("Authentication failed - check your token")
-        case "403":
-            log.Println("Access forbidden - check your permissions")
-        case "404":
-            log.Println("Resource not found")
-        case "429":
-            log.Println("Rate limit exceeded - wait before retrying")
+        switch {
+        case apiErr.IsAccountError():
+            // Subscription lapsed or trial expired
+            log.Println("Account issue - redirect to billing")
+            redirectToBilling()
+        case apiErr.IsAuthenticationError():
+            // Invalid token or insufficient permissions
+            log.Println("Authentication failed - redirect to login")
+            redirectToLogin()
+        case apiErr.IsRateLimit():
+            // Too many requests
+            log.Println("Rate limited - waiting before retry")
+            time.Sleep(client.TimeUntilReset())
+            // Retry request...
+        case apiErr.IsRetryable():
+            // Server errors that might resolve
+            log.Println("Server error - retrying with backoff")
+            // Implement retry logic...
         default:
-            log.Printf("API error: %s - %s", apiErr.Name, apiErr.Detail)
+            log.Printf("API error: %s", apiErr.Detail)
         }
     } else {
         log.Printf("Network error: %v", err)
     }
 }
+```
 
-// OAuth-specific error handling
+### All Available Error Constants
+
+All YNAB API error codes are available as type-safe constants:
+
+```go
+import "github.com/brunomvsouza/ynab.go/api"
+
+// 4xx Client Errors
+api.ErrorBadRequest         // "400" - Validation/malformed request
+api.ErrorUnauthorized       // "401" - Authentication failure
+api.ErrorSubscriptionLapsed // "403.1" - Subscription has lapsed
+api.ErrorTrialExpired       // "403.2" - Trial has expired
+api.ErrorUnauthorizedScope  // "403.3" - Insufficient permissions
+api.ErrorDataLimitReached   // "403.4" - Data limits exceeded
+api.ErrorNotFound           // "404.1" - URI not found
+api.ErrorResourceNotFound   // "404.2" - Resource not found
+api.ErrorConflict           // "409" - Resource conflict
+api.ErrorRateLimit          // "429" - Too many requests
+
+// 5xx Server Errors
+api.ErrorInternalServer     // "500" - Internal server error
+api.ErrorServiceUnavailable // "503" - Service unavailable
+```
+
+### Error Categorization Helper Methods
+
+#### Account/Subscription Errors
+```go
+if apiErr.IsSubscriptionLapsed() {
+    // Redirect user to billing page
+    redirectToBilling()
+} else if apiErr.IsTrialExpired() {
+    // Show upgrade prompt
+    showUpgradePrompt()
+} else if apiErr.IsAccountError() {
+    // General account issue (covers both above)
+    showAccountNotification(apiErr.Detail)
+}
+```
+
+#### Authentication/Authorization Errors
+```go
+if apiErr.IsUnauthorized() {
+    // Token is invalid, expired, or missing
+    redirectToLogin()
+} else if apiErr.IsUnauthorizedScope() {
+    // Insufficient permissions for requested operation
+    showPermissionError()
+} else if apiErr.IsAuthenticationError() {
+    // General auth issue (covers both above)
+    handleAuthFailure(apiErr)
+}
+```
+
+#### Resource Errors
+```go
+if apiErr.IsNotFound() {
+    log.Println("Resource not found")
+} else if apiErr.IsConflict() {
+    // Usually means duplicate import_id for transactions
+    log.Println("Resource conflict - may be duplicate")
+} else if apiErr.IsDataLimitReached() {
+    log.Println("Data limit reached - request too large")
+}
+```
+
+#### General Error Categories
+```go
+if apiErr.IsRetryable() {
+    // Safe to retry (rate limits, server errors)
+    implementRetryLogic()
+} else if apiErr.RequiresUserAction() {
+    // User needs to do something (billing, auth, etc.)
+    showUserNotification(apiErr.Detail)
+} else if apiErr.IsClientError() {
+    // 4xx errors - client issue
+    handleClientError()
+} else if apiErr.IsServerError() {
+    // 5xx errors - server issue
+    handleServerError()
+}
+```
+
+### Production-Ready Retry Logic
+
+```go
+func makeRequestWithRetry(client ynab.ClientServicer, budgetID string) ([]*budget.Budget, error) {
+    maxRetries := 3
+    
+    for attempt := 0; attempt <= maxRetries; attempt++ {
+        budgets, err := client.Budget().GetBudgets()
+        if err == nil {
+            return budgets, nil
+        }
+        
+        if apiErr, ok := err.(*api.Error); ok {
+            if !apiErr.IsRetryable() {
+                // Not retryable - return immediately
+                return nil, err
+            }
+            
+            if apiErr.IsRateLimit() {
+                // Wait for rate limit reset
+                waitTime := client.TimeUntilReset()
+                log.Printf("Rate limited, waiting %v", waitTime)
+                time.Sleep(waitTime)
+                continue
+            }
+            
+            if apiErr.IsServerError() {
+                // Exponential backoff for server errors
+                waitTime := time.Duration(attempt+1) * time.Second
+                log.Printf("Server error, retrying in %v", waitTime)
+                time.Sleep(waitTime)
+                continue
+            }
+        }
+        
+        // Non-API error or non-retryable error
+        return nil, err
+    }
+    
+    return nil, fmt.Errorf("max retries exceeded")
+}
+```
+
+### Complete Error Handling Example
+
+```go
+func comprehensiveErrorHandling(client ynab.ClientServicer, budgetID string) error {
+    budget, err := client.Budget().GetBudget(budgetID, nil)
+    if err != nil {
+        if apiErr, ok := err.(*api.Error); ok {
+            switch {
+            case apiErr.IsAccountError():
+                return handleAccountIssue(apiErr)
+            case apiErr.IsAuthenticationError():
+                return handleAuthIssue(apiErr)
+            case apiErr.IsRateLimit():
+                return handleRateLimit(client, apiErr)
+            case apiErr.IsNotFound():
+                return fmt.Errorf("budget %s not found", budgetID)
+            case apiErr.IsValidationError():
+                return fmt.Errorf("invalid request: %s", apiErr.Detail)
+            case apiErr.IsRetryable():
+                return fmt.Errorf("temporary server issue: %s", apiErr.Detail)
+            default:
+                return fmt.Errorf("unexpected API error: %s", apiErr.Detail)
+            }
+        }
+        return fmt.Errorf("request failed: %v", err)
+    }
+    
+    log.Printf("Successfully retrieved budget: %s", budget.Name)
+    return nil
+}
+```
+
+
+### OAuth Error Handling
+
+```go
 token, err := flow.HandleCallback(callbackURL, state)
 if err != nil {
     if oauthErr, ok := err.(*oauth.ErrorResponse); ok {
