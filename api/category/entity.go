@@ -1,11 +1,7 @@
-// Copyright (c) 2018, Bruno M V Souza <github@b.bmvs.io>. All rights reserved.
-// Use of this source code is governed by a BSD-2-Clause license that can be
-// found in the LICENSE file.
-
 // Package category implements category entities and services
-package category // import "github.com/brunomvsouza/ynab.go/api/category"
+package category // import "github.com/coltoneshaw/ynab.go/api/category"
 
-import "github.com/brunomvsouza/ynab.go/api"
+import "github.com/coltoneshaw/ynab.go/api"
 
 // Category represents a category for a budget
 type Category struct {

@@ -1,10 +1,6 @@
-// Copyright (c) 2018, Bruno M V Souza <github@b.bmvs.io>. All rights reserved.
-// Use of this source code is governed by a BSD-2-Clause license that can be
-// found in the LICENSE file.
-
 // Package api implements shared structures and behaviours of
 // the API services
-package api // import "github.com/brunomvsouza/ynab.go/api"
+package api // import "github.com/coltoneshaw/ynab.go/api"
 
 import (
 	"context"

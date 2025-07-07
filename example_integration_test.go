@@ -1,7 +1,3 @@
-// Copyright (c) 2018, Bruno M V Souza <github@b.bmvs.io>. All rights reserved.
-// Use of this source code is governed by a BSD-2-Clause license that can be
-// found in the LICENSE file.
-
 //go:build integration
 // +build integration
 
@@ -13,8 +9,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/brunomvsouza/ynab.go"
-	"github.com/brunomvsouza/ynab.go/oauth"
+	"github.com/coltoneshaw/ynab.go"
+	"github.com/coltoneshaw/ynab.go/oauth"
 )
 
 // Example_oAuthIntegration demonstrates OAuth 2.0 integration with the YNAB client

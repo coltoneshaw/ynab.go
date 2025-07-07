@@ -8,9 +8,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/jarcoal/httpmock.v1"
 
-	"github.com/brunomvsouza/ynab.go"
-	"github.com/brunomvsouza/ynab.go/api"
-	"github.com/brunomvsouza/ynab.go/api/category"
+	"github.com/coltoneshaw/ynab.go"
+	"github.com/coltoneshaw/ynab.go/api"
+	"github.com/coltoneshaw/ynab.go/api/category"
 )
 
 func TestService_UpdateCategory(t *testing.T) {

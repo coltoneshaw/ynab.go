@@ -14,8 +14,8 @@ import (
     "fmt"
     "log"
     
-    "github.com/brunomvsouza/ynab.go"
-    "github.com/brunomvsouza/ynab.go/oauth"
+    "github.com/coltoneshaw/ynab.go"
+    "github.com/coltoneshaw/ynab.go/oauth"
 )
 
 func main() {

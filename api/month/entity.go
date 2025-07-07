@@ -1,13 +1,9 @@
-// Copyright (c) 2018, Bruno M V Souza <github@b.bmvs.io>. All rights reserved.
-// Use of this source code is governed by a BSD-2-Clause license that can be
-// found in the LICENSE file.
-
 // Package month implements month entities and services
-package month // import "github.com/brunomvsouza/ynab.go/api/month"
+package month // import "github.com/coltoneshaw/ynab.go/api/month"
 
 import (
-	"github.com/brunomvsouza/ynab.go/api"
-	"github.com/brunomvsouza/ynab.go/api/category"
+	"github.com/coltoneshaw/ynab.go/api"
+	"github.com/coltoneshaw/ynab.go/api/category"
 )
 
 // Month represents a month for a budget
