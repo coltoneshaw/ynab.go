@@ -35,6 +35,27 @@ type PayloadTransaction struct {
 	// was imported and had the same date and same amount, its import_id would
 	// be 'YNAB:-294230:2015-12-30:2’.
 	ImportID *string `json:"import_id"`
+	// SubTransactions An array of subtransactions to configure a transaction as a split.
+	// Updating subtransactions on an existing split transaction is not supported.
+	SubTransactions []*PayloadSubTransaction `json:"subtransactions,omitempty"`
+}
+
+// PayloadSubTransaction is the payload contract for saving a subtransaction as part of a split transaction
+type PayloadSubTransaction struct {
+	// Amount The subtransaction amount in milliunits format
+	Amount int64 `json:"amount"`
+	// PayeeID The payee for the subtransaction
+	PayeeID *string `json:"payee_id"`
+	// PayeeName The payee name. If a payee_name value is provided and payee_id
+	// has a null value, the payee_name value will be used to resolve the
+	// payee by either (1) a matching payee rename rule (only if import_id
+	// is also specified on parent transaction) or (2) a payee with the
+	// same name or (3) creation of a new payee.
+	PayeeName *string `json:"payee_name"`
+	// CategoryID The category for the subtransaction. Credit Card Payment categories
+	// are not permitted and will be ignored if supplied.
+	CategoryID *string `json:"category_id"`
+	Memo       *string `json:"memo"`
 }
 
 // PayloadScheduledTransaction is the payload contract for saving a scheduled transaction, new or existent
