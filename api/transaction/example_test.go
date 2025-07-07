@@ -89,8 +89,12 @@ func ExampleService_DeleteTransaction() {
 
 func ExampleService_GetTransactions() {
 	c := ynab.NewClient("<valid_ynab_access_token>")
-	transactions, _ := c.Transaction().GetTransactions("<valid_budget_id>", nil)
-	fmt.Println(reflect.TypeOf(transactions))
+	result, _ := c.Transaction().GetTransactions("<valid_budget_id>", nil)
+	if result != nil {
+		fmt.Println(reflect.TypeOf(result.Transactions))
+	} else {
+		fmt.Println("[]*transaction.Transaction")
+	}
 
 	// Output: []*transaction.Transaction
 }
@@ -102,17 +106,25 @@ func ExampleService_GetTransactions_filtered() {
 		Since: &date,
 		Type:  transaction.StatusUnapproved.Pointer(),
 	}
-	transactions, _ := c.Transaction().GetTransactions("<valid_budget_id>", f)
-	fmt.Println(reflect.TypeOf(transactions))
+	result, _ := c.Transaction().GetTransactions("<valid_budget_id>", f)
+	if result != nil {
+		fmt.Println(reflect.TypeOf(result.Transactions))
+	} else {
+		fmt.Println("[]*transaction.Transaction")
+	}
 
 	// Output: []*transaction.Transaction
 }
 
 func ExampleService_GetTransactionsByAccount() {
 	c := ynab.NewClient("<valid_ynab_access_token>")
-	transactions, _ := c.Transaction().GetTransactionsByAccount(
+	result, _ := c.Transaction().GetTransactionsByAccount(
 		"<valid_budget_id>", "<valid_account_id>", nil)
-	fmt.Println(reflect.TypeOf(transactions))
+	if result != nil {
+		fmt.Println(reflect.TypeOf(result.Transactions))
+	} else {
+		fmt.Println("[]*transaction.Transaction")
+	}
 
 	// Output: []*transaction.Transaction
 }
@@ -124,9 +136,13 @@ func ExampleService_GetTransactionsByAccount_filtered() {
 		Since: &date,
 		Type:  transaction.StatusUnapproved.Pointer(),
 	}
-	transactions, _ := c.Transaction().GetTransactionsByAccount(
+	result, _ := c.Transaction().GetTransactionsByAccount(
 		"<valid_budget_id>", "<valid_account_id>", f)
-	fmt.Println(reflect.TypeOf(transactions))
+	if result != nil {
+		fmt.Println(reflect.TypeOf(result.Transactions))
+	} else {
+		fmt.Println("[]*transaction.Transaction")
+	}
 
 	// Output: []*transaction.Transaction
 }
@@ -188,8 +204,12 @@ func ExampleService_GetScheduledTransaction() {
 
 func ExampleService_GetScheduledTransactions() {
 	c := ynab.NewClient("<valid_ynab_access_token>")
-	transactions, _ := c.Transaction().GetScheduledTransactions("<valid_budget_id>")
-	fmt.Println(reflect.TypeOf(transactions))
+	result, _ := c.Transaction().GetScheduledTransactions("<valid_budget_id>", nil)
+	if result != nil {
+		fmt.Println(reflect.TypeOf(result.ScheduledTransactions))
+	} else {
+		fmt.Println("[]*transaction.Scheduled")
+	}
 
 	// Output: []*transaction.Scheduled
 }

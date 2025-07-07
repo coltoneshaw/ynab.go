@@ -22,13 +22,20 @@ type Service struct {
 	c api.ClientReaderWriter
 }
 
+// SearchResultSnapshot represents the result of a search with server knowledge
+type SearchResultSnapshot struct {
+	Transactions    []*Transaction
+	ServerKnowledge uint64
+}
+
 // GetTransactions fetches the list of transactions from
 // a budget with filtering capabilities
 // https://api.youneedabudget.com/v1#/Transactions/getTransactions
-func (s *Service) GetTransactions(budgetID string, f *Filter) ([]*Transaction, error) {
+func (s *Service) GetTransactions(budgetID string, f *Filter) (*SearchResultSnapshot, error) {
 	resModel := struct {
 		Data struct {
-			Transactions []*Transaction `json:"transactions"`
+			Transactions    []*Transaction `json:"transactions"`
+			ServerKnowledge uint64         `json:"server_knowledge"`
 		} `json:"data"`
 	}{}
 
@@ -41,7 +48,10 @@ func (s *Service) GetTransactions(budgetID string, f *Filter) ([]*Transaction, e
 		return nil, err
 	}
 
-	return resModel.Data.Transactions, nil
+	return &SearchResultSnapshot{
+		Transactions:    resModel.Data.Transactions,
+		ServerKnowledge: resModel.Data.ServerKnowledge,
+	}, nil
 }
 
 // GetTransaction fetches a specific transaction from a budget
@@ -204,11 +214,12 @@ func (s *Service) DeleteTransaction(budgetID, transactionID string) (*Transactio
 // from a budget with filtering capabilities
 // https://api.youneedabudget.com/v1#/Transactions/getTransactionsByAccount
 func (s *Service) GetTransactionsByAccount(budgetID, accountID string,
-	f *Filter) ([]*Transaction, error) {
+	f *Filter) (*SearchResultSnapshot, error) {
 
 	resModel := struct {
 		Data struct {
-			Transactions []*Transaction `json:"transactions"`
+			Transactions    []*Transaction `json:"transactions"`
+			ServerKnowledge uint64         `json:"server_knowledge"`
 		} `json:"data"`
 	}{}
 
@@ -221,15 +232,19 @@ func (s *Service) GetTransactionsByAccount(budgetID, accountID string,
 		return nil, err
 	}
 
-	return resModel.Data.Transactions, nil
+	return &SearchResultSnapshot{
+		Transactions:    resModel.Data.Transactions,
+		ServerKnowledge: resModel.Data.ServerKnowledge,
+	}, nil
 }
 
 // GetTransactionsByMonth fetches the list of transactions for a specific month from a budget
 // https://api.youneedabudget.com/v1#/Transactions/getTransactionsByMonth
-func (s *Service) GetTransactionsByMonth(budgetID, month string, f *Filter) ([]*Transaction, error) {
+func (s *Service) GetTransactionsByMonth(budgetID, month string, f *Filter) (*SearchResultSnapshot, error) {
 	resModel := struct {
 		Data struct {
-			Transactions []*Transaction `json:"transactions"`
+			Transactions    []*Transaction `json:"transactions"`
+			ServerKnowledge uint64         `json:"server_knowledge"`
 		} `json:"data"`
 	}{}
 
@@ -242,7 +257,10 @@ func (s *Service) GetTransactionsByMonth(budgetID, month string, f *Filter) ([]*
 		return nil, err
 	}
 
-	return resModel.Data.Transactions, nil
+	return &SearchResultSnapshot{
+		Transactions:    resModel.Data.Transactions,
+		ServerKnowledge: resModel.Data.ServerKnowledge,
+	}, nil
 }
 
 // GetTransactionsByCategory fetches the list of transactions of a specific category
@@ -293,22 +311,36 @@ func (s *Service) GetTransactionsByPayee(budgetID, payeeID string,
 	return resModel.Data.Transactions, nil
 }
 
+// ScheduledSearchResultSnapshot represents the result of a scheduled transaction search with server knowledge
+type ScheduledSearchResultSnapshot struct {
+	ScheduledTransactions []*Scheduled
+	ServerKnowledge       uint64
+}
+
 // GetScheduledTransactions fetches the list of scheduled transactions from
-// a budget
+// a budget with filtering capabilities
 // https://api.youneedabudget.com/v1#/Scheduled_Transactions/getScheduledTransactions
-func (s *Service) GetScheduledTransactions(budgetID string) ([]*Scheduled, error) {
+func (s *Service) GetScheduledTransactions(budgetID string, f *api.Filter) (*ScheduledSearchResultSnapshot, error) {
 	resModel := struct {
 		Data struct {
 			ScheduledTransactions []*Scheduled `json:"scheduled_transactions"`
+			ServerKnowledge       uint64       `json:"server_knowledge"`
 		} `json:"data"`
 	}{}
 
 	url := fmt.Sprintf("/budgets/%s/scheduled_transactions", budgetID)
+	if f != nil {
+		url = fmt.Sprintf("%s?%s", url, f.ToQuery())
+	}
+
 	if err := s.c.GET(url, &resModel); err != nil {
 		return nil, err
 	}
 
-	return resModel.Data.ScheduledTransactions, nil
+	return &ScheduledSearchResultSnapshot{
+		ScheduledTransactions: resModel.Data.ScheduledTransactions,
+		ServerKnowledge:       resModel.Data.ServerKnowledge,
+	}, nil
 }
 
 // GetScheduledTransaction fetches a specific scheduled transaction from a budget
@@ -329,19 +361,23 @@ func (s *Service) GetScheduledTransaction(budgetID, scheduledTransactionID strin
 
 // Filter represents the optional filter while fetching transactions
 type Filter struct {
-	Since *api.Date
-	Type  *Status
+	Since                 *api.Date
+	Type                  *Status
+	LastKnowledgeOfServer *uint64
 }
 
 // ToQuery returns the filters as a HTTP query string
 func (f *Filter) ToQuery() string {
-	pairs := make([]string, 0, 2)
+	pairs := make([]string, 0, 3)
 	if f.Since != nil && !f.Since.IsZero() {
 		pairs = append(pairs, fmt.Sprintf("since_date=%s",
 			api.DateFormat(*f.Since)))
 	}
 	if f.Type != nil {
 		pairs = append(pairs, fmt.Sprintf("type=%s", string(*f.Type)))
+	}
+	if f.LastKnowledgeOfServer != nil {
+		pairs = append(pairs, fmt.Sprintf("last_knowledge_of_server=%d", *f.LastKnowledgeOfServer))
 	}
 	return strings.Join(pairs, "&")
 }

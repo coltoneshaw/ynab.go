@@ -57,7 +57,8 @@ func TestService_GetTransactions(t *testing.T) {
           }
 				]
 			}
-		]
+		],
+		"server_knowledge": 12345
 	}
 }
 		`)
@@ -66,8 +67,9 @@ func TestService_GetTransactions(t *testing.T) {
 	)
 
 	client := ynab.NewClient("")
-	transactions, err := client.Transaction().GetTransactions("aa248caa-eed7-4575-a990-717386438d2c", nil)
+	result, err := client.Transaction().GetTransactions("aa248caa-eed7-4575-a990-717386438d2c", nil)
 	assert.NoError(t, err)
+	transactions := result.Transactions
 
 	expectedDate, err := api.DateFromString("2018-03-10")
 	assert.NoError(t, err)
@@ -248,7 +250,8 @@ func TestService_GetTransactionsByAccount(t *testing.T) {
           }
 				]
 			}
-		]
+		],
+		"server_knowledge": 67890
 	}
 }
 		`)
@@ -257,12 +260,13 @@ func TestService_GetTransactionsByAccount(t *testing.T) {
 	)
 
 	client := ynab.NewClient("")
-	transactions, err := client.Transaction().GetTransactionsByAccount(
+	result, err := client.Transaction().GetTransactionsByAccount(
 		"aa248caa-eed7-4575-a990-717386438d2c",
 		"09eaca5e-6f16-4480-9515-828fb90638f2",
 		nil,
 	)
 	assert.NoError(t, err)
+	transactions := result.Transactions
 
 	expectedDate, err := api.DateFromString("2018-03-10")
 	assert.NoError(t, err)
@@ -488,7 +492,8 @@ func TestService_GetScheduledTransactions(t *testing.T) {
         "deleted": false,
         "subtransactions": []
       }
-		]
+		],
+		"server_knowledge": 98765
 	}
 }
 		`)
@@ -497,9 +502,10 @@ func TestService_GetScheduledTransactions(t *testing.T) {
 	)
 
 	client := ynab.NewClient("")
-	transactions, err := client.Transaction().GetScheduledTransactions(
-		"aa248caa-eed7-4575-a990-717386438d2c")
+	result, err := client.Transaction().GetScheduledTransactions(
+		"aa248caa-eed7-4575-a990-717386438d2c", nil)
 	assert.NoError(t, err)
+	transactions := result.ScheduledTransactions
 
 	expectedFirstAndLastDate, err := api.DateFromString("2018-11-13")
 	assert.NoError(t, err)
@@ -1577,7 +1583,8 @@ func TestService_GetTransactionsByMonth(t *testing.T) {
         "deleted": false,
         "subtransactions": []
       }
-    ]
+    ],
+    "server_knowledge": 11111
   }
 }
 		`)
@@ -1586,12 +1593,13 @@ func TestService_GetTransactionsByMonth(t *testing.T) {
 	)
 
 	client := ynab.NewClient("")
-	transactions, err := client.Transaction().GetTransactionsByMonth(
+	result, err := client.Transaction().GetTransactionsByMonth(
 		"aa248caa-eed7-4575-a990-717386438d2c",
 		"2018-11",
 		nil,
 	)
 	assert.NoError(t, err)
+	transactions := result.Transactions
 
 	payloadDate, err := api.DateFromString("2018-11-13")
 	assert.NoError(t, err)
