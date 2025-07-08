@@ -1257,6 +1257,98 @@ func TestFilter_ToQuery(t *testing.T) {
 	}
 }
 
+func TestService_GetTransactions_FilterQueryParameters(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/transactions"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			// Verify that the query parameters are correctly included
+			assert.Equal(t, "2020-01-01", req.URL.Query().Get("since_date"))
+			assert.Equal(t, "unapproved", req.URL.Query().Get("type"))
+			assert.Equal(t, "12345", req.URL.Query().Get("last_knowledge_of_server"))
+
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "transactions": [],
+    "server_knowledge": 12345
+  }
+}`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	sinceDate, err := api.DateFromString("2020-01-01")
+	assert.NoError(t, err)
+
+	unapprovedStatus := transaction.StatusUnapproved
+	serverKnowledge := uint64(12345)
+
+	f := &transaction.Filter{
+		Since:                 &sinceDate,
+		Type:                  &unapprovedStatus,
+		LastKnowledgeOfServer: &serverKnowledge,
+	}
+
+	_, err = client.Transaction().GetTransactions("bbdccdb0-9007-42aa-a6fe-02a3e94476be", f)
+	assert.NoError(t, err)
+}
+
+func TestService_GetTransactions_EmptyFilter(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/transactions"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			// Verify that no query parameters are included when filter is empty
+			assert.Empty(t, req.URL.RawQuery)
+
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "transactions": [],
+    "server_knowledge": 0
+  }
+}`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	f := &transaction.Filter{}
+
+	_, err := client.Transaction().GetTransactions("bbdccdb0-9007-42aa-a6fe-02a3e94476be", f)
+	assert.NoError(t, err)
+}
+
+func TestService_GetTransactions_NilFilter(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/transactions"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			// Verify that no query parameters are included when filter is nil
+			assert.Empty(t, req.URL.RawQuery)
+
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "transactions": [],
+    "server_knowledge": 0
+  }
+}`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+
+	_, err := client.Transaction().GetTransactions("bbdccdb0-9007-42aa-a6fe-02a3e94476be", nil)
+	assert.NoError(t, err)
+}
+
 func TestService_CreateScheduledTransaction(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()

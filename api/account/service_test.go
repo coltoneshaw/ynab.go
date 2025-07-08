@@ -71,6 +71,57 @@ func TestService_GetAccounts(t *testing.T) {
 	assert.Equal(t, expected, snapshot)
 }
 
+func TestService_GetAccounts_FilterQueryParameters(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/accounts"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			// Verify that the query parameters are correctly included
+			assert.Equal(t, "12345", req.URL.Query().Get("last_knowledge_of_server"))
+
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "accounts": [],
+    "server_knowledge": 12345
+  }
+}`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	f := &api.Filter{LastKnowledgeOfServer: 12345}
+	_, err := client.Account().GetAccounts("bbdccdb0-9007-42aa-a6fe-02a3e94476be", f)
+	assert.NoError(t, err)
+}
+
+func TestService_GetAccounts_NilFilter(t *testing.T) {
+	httpmock.Activate()
+	defer httpmock.DeactivateAndReset()
+
+	url := "https://api.youneedabudget.com/v1/budgets/bbdccdb0-9007-42aa-a6fe-02a3e94476be/accounts"
+	httpmock.RegisterResponder(http.MethodGet, url,
+		func(req *http.Request) (*http.Response, error) {
+			// Verify that no query parameters are included when filter is nil
+			assert.Empty(t, req.URL.RawQuery)
+
+			res := httpmock.NewStringResponse(200, `{
+  "data": {
+    "accounts": [],
+    "server_knowledge": 0
+  }
+}`)
+			return res, nil
+		},
+	)
+
+	client := ynab.NewClient("")
+	_, err := client.Account().GetAccounts("bbdccdb0-9007-42aa-a6fe-02a3e94476be", nil)
+	assert.NoError(t, err)
+}
+
 func TestService_GetAccount(t *testing.T) {
 	httpmock.Activate()
 	defer httpmock.DeactivateAndReset()

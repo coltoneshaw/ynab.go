@@ -14,24 +14,40 @@ import (
 
 func TestFilter_ToQuery(t *testing.T) {
 	table := []struct {
+		Name   string
 		Input  api.Filter
 		Output string
 	}{
 		{
+			Name:   "with_server_knowledge",
 			Input:  api.Filter{LastKnowledgeOfServer: 2},
 			Output: "last_knowledge_of_server=2",
 		},
 		{
+			Name:   "zero_server_knowledge",
 			Input:  api.Filter{LastKnowledgeOfServer: 0},
 			Output: "last_knowledge_of_server=0",
 		},
 		{
+			Name:   "empty_filter",
 			Input:  api.Filter{},
 			Output: "last_knowledge_of_server=0",
+		},
+		{
+			Name:   "large_server_knowledge",
+			Input:  api.Filter{LastKnowledgeOfServer: 9999999999},
+			Output: "last_knowledge_of_server=9999999999",
+		},
+		{
+			Name:   "max_uint64",
+			Input:  api.Filter{LastKnowledgeOfServer: ^uint64(0)},
+			Output: "last_knowledge_of_server=18446744073709551615",
 		},
 	}
 
 	for _, test := range table {
-		assert.Equal(t, test.Output, test.Input.ToQuery())
+		t.Run(test.Name, func(t *testing.T) {
+			assert.Equal(t, test.Output, test.Input.ToQuery())
+		})
 	}
 }
