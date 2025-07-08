@@ -18,6 +18,7 @@ This is an UNOFFICIAL Go client for the YNAB API. It covers 100% of the resource
 - ✅ **Complete API Coverage** - All 36 YNAB API endpoints implemented
 - 🔐 **OAuth 2.0 Support** - Authorization Code and Implicit Grant flows
 - 🔄 **Automatic Token Refresh** - Seamless token renewal
+- 🔥 **Token Hot-Swapping** - Runtime token updates without client recreation
 - 💾 **Flexible Token Storage** - Memory, file, encrypted, or custom storage
 - 🧪 **Comprehensive Testing** - 90%+ test coverage
 - 🛡️ **Security Features** - CSRF protection, secure token handling
@@ -337,8 +338,162 @@ client := ynab.NewOAuthClientBuilder(config).
     Build()
 
 // For token-based clients
-client := ynab.NewClient("token")
-// Note: Custom HTTP clients for token-based clients require modifying the client after creation
+client := ynab.NewClient("token").WithHTTPClient(httpClient)
+```
+
+### Token Hot-Swapping (Runtime Token Updates)
+
+Both static API key clients and OAuth clients support updating tokens at runtime without recreating the client instance. This is useful for applications that need to switch between different YNAB accounts or handle token rotation.
+
+#### Static Token Hot-Swapping
+
+```go
+// Initialize client with default token
+client := ynab.NewClient("initial-api-key")
+
+// Later in your application - hot-swap to new token
+err := client.SetAccessToken("new-api-key")
+if err != nil {
+    log.Printf("Failed to update token: %v", err)
+}
+
+// All subsequent API calls use the new token
+budgets, err := client.Budget().GetBudgets()
+
+// Check current token
+currentToken := client.GetAccessTokenString()
+fmt.Printf("Current token: %s\n", currentToken)
+
+// Check if client is authenticated
+if client.IsAuthenticated() {
+    fmt.Println("Client has a valid token")
+}
+```
+
+#### Thread-Safe Token Updates
+
+Token updates are thread-safe and can be called from multiple goroutines:
+
+```go
+client := ynab.NewClient("initial-token")
+
+// Goroutine 1: Making API calls
+go func() {
+    for {
+        budgets, err := client.Budget().GetBudgets()
+        if err != nil {
+            log.Printf("API error: %v", err)
+        }
+        time.Sleep(5 * time.Second)
+    }
+}()
+
+// Goroutine 2: Token rotation
+go func() {
+    for {
+        newToken := getNewTokenFromSomewhere()
+        err := client.SetAccessToken(newToken)
+        if err != nil {
+            log.Printf("Token update failed: %v", err)
+        } else {
+            log.Println("Token updated successfully")
+        }
+        time.Sleep(30 * time.Minute)
+    }
+}()
+```
+
+#### OAuth Token Management
+
+OAuth clients handle token management automatically through the TokenManager, but you can still check authentication status:
+
+```go
+// Create OAuth client
+config := ynab.NewOAuthConfig("client-id", "client-secret", "redirect-uri")
+tokenManager := ynab.NewTokenManager(config, storage)
+client := ynab.NewOAuthClient(config, tokenManager)
+
+// Check authentication status
+if client.IsAuthenticated() {
+    fmt.Println("OAuth client is authenticated")
+} else {
+    fmt.Println("OAuth client needs authentication")
+}
+
+// OAuth tokens are managed by TokenManager - SetAccessToken will return an error
+err := client.SetAccessToken("manual-token")
+if err != nil {
+    fmt.Printf("Expected error: %v\n", err)
+    // Error: "SetAccessToken not supported for OAuth tokens - tokens are managed by OAuth flow"
+}
+
+// Get current OAuth access token (if available)
+token := client.GetAccessTokenString()
+fmt.Printf("Current OAuth token: %s\n", token)
+```
+
+#### Use Cases for Token Hot-Swapping
+
+1. **Multi-Tenant Applications**: Switch between different users' tokens
+```go
+func switchToUser(client ynab.ClientServicer, userID string) error {
+    userToken := getUserToken(userID)
+    return client.SetAccessToken(userToken)
+}
+```
+
+2. **Token Rotation**: Regularly rotate API keys for security
+```go
+func rotateToken(client ynab.ClientServicer) error {
+    newToken, err := generateNewAPIKey()
+    if err != nil {
+        return err
+    }
+    
+    // Test new token before switching
+    testClient := ynab.NewClient(newToken)
+    _, err = testClient.User().GetUser()
+    if err != nil {
+        return fmt.Errorf("new token validation failed: %v", err)
+    }
+    
+    // Switch to new token
+    return client.SetAccessToken(newToken)
+}
+```
+
+3. **Environment Switching**: Switch between development and production environments
+```go
+client := ynab.NewClient(devToken)
+
+// Switch to production
+if isProduction {
+    err := client.SetAccessToken(prodToken)
+    if err != nil {
+        log.Fatal("Failed to switch to production token")
+    }
+}
+```
+
+#### Unified Client Architecture
+
+The library now uses a unified client architecture that eliminates code duplication between static and OAuth clients. Both client types implement the same `ClientServicer` interface and support the same token management methods:
+
+```go
+// Both implement the same interface
+var client ynab.ClientServicer
+
+// Static token client
+client = ynab.NewClient("api-key")
+
+// OAuth client  
+client = ynab.NewOAuthClient(config, tokenManager)
+
+// Both support the same methods
+client.SetAccessToken("new-token")    // Works for static, errors for OAuth
+client.GetAccessTokenString()         // Works for both
+client.IsAuthenticated()              // Works for both
+client.Budget().GetBudgets()          // Works for both
 ```
 
 ## Error Handling

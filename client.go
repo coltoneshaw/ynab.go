@@ -35,14 +35,23 @@ type ClientServicer interface {
 
 	// HTTP client configuration interface
 	api.HTTPClientConfigurer
+
+	// Token management interface
+	api.TokenProvider
 }
 
-// NewClient facilitates the creation of a new client instance
+// NewClient facilitates the creation of a new client instance with a static token
 func NewClient(accessToken string) ClientServicer {
+	tokenProvider := api.NewStaticTokenProvider(accessToken)
+	return NewClientWithTokenProvider(tokenProvider)
+}
+
+// NewClientWithTokenProvider creates a new client with a custom token provider
+func NewClientWithTokenProvider(tokenProvider api.TokenProvider) ClientServicer {
 	c := &client{
-		accessToken: accessToken,
-		httpClient:  api.NewHTTPClient(),
-		rateLimiter: api.NewYNABRateLimitTracker(),
+		tokenProvider: tokenProvider,
+		httpClient:    api.NewHTTPClient(),
+		rateLimiter:   api.NewYNABRateLimitTracker(),
 	}
 
 	c.user = user.NewService(c)
@@ -59,7 +68,7 @@ func NewClient(accessToken string) ClientServicer {
 type client struct {
 	sync.Mutex
 
-	accessToken string
+	tokenProvider api.TokenProvider
 
 	httpClient *api.HTTPClient
 
@@ -137,6 +146,28 @@ func (c *client) IsAtLimit() bool {
 	return c.rateLimiter.IsAtLimit()
 }
 
+// Token management methods
+
+// SetAccessToken updates the access token for hot-swapping at runtime
+func (c *client) SetAccessToken(token string) error {
+	return c.tokenProvider.SetAccessToken(token)
+}
+
+// GetAccessToken returns the current access token
+func (c *client) GetAccessToken(ctx context.Context) (string, error) {
+	return c.tokenProvider.GetAccessToken(ctx)
+}
+
+// GetAccessTokenString returns the current access token without context
+func (c *client) GetAccessTokenString() string {
+	return c.tokenProvider.GetAccessTokenString()
+}
+
+// IsAuthenticated returns true if the client has a valid token
+func (c *client) IsAuthenticated() bool {
+	return c.tokenProvider.IsAuthenticated()
+}
+
 // GET sends a GET request to the YNAB API
 func (c *client) GET(url string, responseModel any) error {
 	return c.do(http.MethodGet, url, responseModel, nil)
@@ -164,7 +195,12 @@ func (c *client) DELETE(url string, responseModel any) error {
 
 // do sends a request to the YNAB API
 func (c *client) do(method, url string, responseModel any, requestBody []byte) error {
-	err := c.httpClient.DoRequest(context.Background(), method, url, responseModel, requestBody, c.accessToken)
+	token, err := c.tokenProvider.GetAccessToken(context.Background())
+	if err != nil {
+		return err
+	}
+
+	err = c.httpClient.DoRequest(context.Background(), method, url, responseModel, requestBody, token)
 	if err != nil {
 		return err
 	}
@@ -186,18 +222,42 @@ func NewOAuthConfig(clientID, clientSecret, redirectURI string) *oauth.Config {
 	})
 }
 
-// NewOAuthClient creates a new OAuth-enabled YNAB client
-func NewOAuthClient(config *oauth.Config, tokenManager *oauth.TokenManager) *oauth.OAuthClient {
+// NewOAuthClient creates a new OAuth-enabled YNAB client using the unified client
+func NewOAuthClient(config *oauth.Config, tokenManager *oauth.TokenManager) ClientServicer {
+	tokenProvider := api.NewOAuthTokenProvider(tokenManager)
+	return NewClientWithTokenProvider(tokenProvider)
+}
+
+// NewLegacyOAuthClient creates the legacy OAuth client (for backward compatibility if needed)
+func NewLegacyOAuthClient(config *oauth.Config, tokenManager *oauth.TokenManager) *oauth.OAuthClient {
 	return oauth.NewOAuthClient(config, tokenManager)
 }
 
-// NewOAuthClientFromToken creates a new OAuth client with an existing token
-func NewOAuthClientFromToken(config *oauth.Config, token *oauth.Token) (*oauth.OAuthClient, error) {
+// NewOAuthClientFromToken creates a new OAuth client with an existing token using the unified client
+func NewOAuthClientFromToken(config *oauth.Config, token *oauth.Token) (ClientServicer, error) {
+	storage := oauth.NewMemoryStorage()
+	if err := storage.SaveToken(token); err != nil {
+		return nil, err
+	}
+	tokenManager := oauth.NewTokenManager(config, storage)
+	return NewOAuthClient(config, tokenManager), nil
+}
+
+// NewOAuthClientFromStorage creates a new OAuth client with token storage using the unified client
+func NewOAuthClientFromStorage(config *oauth.Config, storage oauth.TokenStorage) (ClientServicer, error) {
+	tokenManager := oauth.NewTokenManager(config, storage)
+	return NewOAuthClient(config, tokenManager), nil
+}
+
+// Legacy OAuth convenience functions (for backward compatibility)
+
+// NewLegacyOAuthClientFromToken creates a legacy OAuth client with an existing token
+func NewLegacyOAuthClientFromToken(config *oauth.Config, token *oauth.Token) (*oauth.OAuthClient, error) {
 	return oauth.NewOAuthClientFromToken(config, token)
 }
 
-// NewOAuthClientFromStorage creates a new OAuth client with token storage
-func NewOAuthClientFromStorage(config *oauth.Config, storage oauth.TokenStorage) (*oauth.OAuthClient, error) {
+// NewLegacyOAuthClientFromStorage creates a legacy OAuth client with token storage
+func NewLegacyOAuthClientFromStorage(config *oauth.Config, storage oauth.TokenStorage) (*oauth.OAuthClient, error) {
 	return oauth.NewOAuthClientFromStorage(config, storage)
 }
 
