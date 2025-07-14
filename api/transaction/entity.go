@@ -17,22 +17,28 @@ type Transaction struct {
 	AccountName     string            `json:"account_name"`
 	SubTransactions []*SubTransaction `json:"subtransactions"`
 
-	Memo              *string    `json:"memo"`
-	FlagColor         *FlagColor `json:"flag_color"`
-	PayeeID           *string    `json:"payee_id"`
-	CategoryID        *string    `json:"category_id"`
-	TransferAccountID *string    `json:"transfer_account_id"`
+	Memo                  *string    `json:"memo"`
+	FlagColor             *FlagColor `json:"flag_color"`
+	FlagName              *string    `json:"flag_name"`
+	PayeeID               *string    `json:"payee_id"`
+	CategoryID            *string    `json:"category_id"`
+	TransferAccountID     *string    `json:"transfer_account_id"`
+	TransferTransactionID *string    `json:"transfer_transaction_id"`
+	MatchedTransactionID  *string    `json:"matched_transaction_id"`
 	// ImportID If the Transaction was imported, this field is a unique (by account) import
 	// identifier. If this transaction was imported through File Based Import or
 	// Direct Import and not through the API, the import_id will have the format:
 	// 'YNAB:[milliunit_amount]:[iso_date]:[occurrence]'. For example, a transaction
 	// dated 2015-12-30 in the amount of -$294.23 USD would have an import_id of
-	// 'YNAB:-294230:2015-12-30:1’. If a second transaction on the same account
+	// 'YNAB:-294230:2015-12-30:1'. If a second transaction on the same account
 	// was imported and had the same date and same amount, its import_id would
-	// be 'YNAB:-294230:2015-12-30:2’.
-	ImportID     *string `json:"import_id"`
-	PayeeName    *string `json:"payee_name"`
-	CategoryName *string `json:"category_name"`
+	// be 'YNAB:-294230:2015-12-30:2'.
+	ImportID                *string `json:"import_id"`
+	ImportPayeeName         *string `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
+	DebtTransactionType     *string `json:"debt_transaction_type"`
+	PayeeName               *string `json:"payee_name"`
+	CategoryName            *string `json:"category_name"`
 }
 
 // Summary represents the summary of a transaction for a budget
@@ -47,20 +53,26 @@ type Summary struct {
 	// Deleted Deleted transactions will only be included in delta requests
 	Deleted bool `json:"deleted"`
 
-	Memo              *string    `json:"memo"`
-	FlagColor         *FlagColor `json:"flag_color"`
-	PayeeID           *string    `json:"payee_id"`
-	CategoryID        *string    `json:"category_id"`
-	TransferAccountID *string    `json:"transfer_account_id"`
+	Memo                    *string              `json:"memo"`
+	FlagColor               *FlagColor           `json:"flag_color"`
+	FlagName                *string              `json:"flag_name"`
+	PayeeID                 *string              `json:"payee_id"`
+	CategoryID              *string              `json:"category_id"`
+	TransferAccountID       *string              `json:"transfer_account_id"`
+	TransferTransactionID   *string              `json:"transfer_transaction_id"`
+	MatchedTransactionID    *string              `json:"matched_transaction_id"`
+	ImportPayeeName         *string              `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string              `json:"import_payee_name_original"`
+	DebtTransactionType     *DebtTransactionType `json:"debt_transaction_type"`
 
 	// ImportID If the Transaction was imported, this field is a unique (by account) import
 	// identifier. If this transaction was imported through File Based Import or
 	// Direct Import and not through the API, the import_id will have the format:
 	// 'YNAB:[milliunit_amount]:[iso_date]:[occurrence]'. For example, a transaction
 	// dated 2015-12-30 in the amount of -$294.23 USD would have an import_id of
-	// 'YNAB:-294230:2015-12-30:1’. If a second transaction on the same account
+	// 'YNAB:-294230:2015-12-30:1'. If a second transaction on the same account
 	// was imported and had the same date and same amount, its import_id would
-	// be 'YNAB:-294230:2015-12-30:2’.
+	// be 'YNAB:-294230:2015-12-30:2'.
 	ImportID *string `json:"import_id"`
 }
 
@@ -73,12 +85,15 @@ type SubTransaction struct {
 	// Deleted Deleted sub-transactions will only be included in delta requests.
 	Deleted bool `json:"deleted"`
 
-	Memo       *string `json:"memo"`
-	PayeeID    *string `json:"payee_id"`
-	CategoryID *string `json:"category_id"`
+	Memo         *string `json:"memo"`
+	PayeeID      *string `json:"payee_id"`
+	PayeeName    *string `json:"payee_name"`
+	CategoryID   *string `json:"category_id"`
+	CategoryName *string `json:"category_name"`
 	// TransferAccountID If a transfer, the account_id which the
 	// sub-transaction transfers to
-	TransferAccountID *string `json:"transfer_account_id"`
+	TransferAccountID     *string `json:"transfer_account_id"`
+	TransferTransactionID *string `json:"transfer_transaction_id"`
 }
 
 // Hybrid represents a hybrid transaction
@@ -95,20 +110,26 @@ type Hybrid struct {
 	Deleted bool `json:"deleted"`
 	Type    Type `json:"type"`
 
-	Memo              *string    `json:"memo"`
-	FlagColor         *FlagColor `json:"flag_color"`
-	PayeeID           *string    `json:"payee_id"`
-	CategoryID        *string    `json:"category_id"`
-	TransferAccountID *string    `json:"transfer_account_id"`
+	Memo                  *string    `json:"memo"`
+	FlagColor             *FlagColor `json:"flag_color"`
+	FlagName              *string    `json:"flag_name"`
+	PayeeID               *string    `json:"payee_id"`
+	CategoryID            *string    `json:"category_id"`
+	TransferAccountID     *string    `json:"transfer_account_id"`
+	TransferTransactionID *string    `json:"transfer_transaction_id"`
+	MatchedTransactionID  *string    `json:"matched_transaction_id"`
 	// ImportID If the Transaction was imported, this field is a unique (by account) import
 	// identifier. If this transaction was imported through File Based Import or
 	// Direct Import and not through the API, the import_id will have the format:
 	// 'YNAB:[milliunit_amount]:[iso_date]:[occurrence]'. For example, a transaction
 	// dated 2015-12-30 in the amount of -$294.23 USD would have an import_id of
-	// 'YNAB:-294230:2015-12-30:1’. If a second transaction on the same account
+	// 'YNAB:-294230:2015-12-30:1'. If a second transaction on the same account
 	// was imported and had the same date and same amount, its import_id would
-	// be 'YNAB:-294230:2015-12-30:2’.
-	ImportID *string `json:"import_id"`
+	// be 'YNAB:-294230:2015-12-30:2'.
+	ImportID                *string `json:"import_id"`
+	ImportPayeeName         *string `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
+	DebtTransactionType     *string `json:"debt_transaction_type"`
 	// ParentTransactionID For subtransaction types, this is the id of the parent transaction
 	// For transaction types, this id will be always be null
 	ParentTransactionID *string `json:"parent_transaction_id"`
@@ -132,13 +153,19 @@ type Scheduled struct {
 
 	Memo       *string    `json:"memo"`
 	FlagColor  *FlagColor `json:"flag_color"`
+	FlagName   *string    `json:"flag_name"`
 	PayeeID    *string    `json:"payee_id"`
 	CategoryID *string    `json:"category_id"`
 	// TransferAccountID If a transfer, the account_id which the scheduled
 	// transaction transfers to
-	TransferAccountID *string `json:"transfer_account_id"`
-	PayeeName         *string `json:"payee_name"`
-	CategoryName      *string `json:"category_name"`
+	TransferAccountID       *string `json:"transfer_account_id"`
+	TransferTransactionID   *string `json:"transfer_transaction_id"`
+	MatchedTransactionID    *string `json:"matched_transaction_id"`
+	ImportPayeeName         *string `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
+	DebtTransactionType     *string `json:"debt_transaction_type"`
+	PayeeName               *string `json:"payee_name"`
+	CategoryName            *string `json:"category_name"`
 }
 
 // ScheduledSummary represents the summary of a scheduled transaction for a budget
@@ -155,11 +182,17 @@ type ScheduledSummary struct {
 
 	Memo       *string    `json:"memo"`
 	FlagColor  *FlagColor `json:"flag_color"`
+	FlagName   *string    `json:"flag_name"`
 	PayeeID    *string    `json:"payee_id"`
 	CategoryID *string    `json:"category_id"`
 	// TransferAccountID If a transfer, the account_id which the scheduled
 	// transaction transfers to
-	TransferAccountID *string `json:"transfer_account_id"`
+	TransferAccountID       *string `json:"transfer_account_id"`
+	TransferTransactionID   *string `json:"transfer_transaction_id"`
+	MatchedTransactionID    *string `json:"matched_transaction_id"`
+	ImportPayeeName         *string `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
+	DebtTransactionType     *string `json:"debt_transaction_type"`
 }
 
 // ScheduledSubTransaction represents a scheduled sub-transaction for
@@ -172,12 +205,15 @@ type ScheduledSubTransaction struct {
 	// Deleted Deleted scheduled sub-transactions will only be included in delta requests
 	Deleted bool `json:"deleted"`
 
-	Memo       *string `json:"memo"`
-	PayeeID    *string `json:"payee_id"`
-	CategoryID *string `json:"category_id"`
+	Memo         *string `json:"memo"`
+	PayeeID      *string `json:"payee_id"`
+	PayeeName    *string `json:"payee_name"`
+	CategoryID   *string `json:"category_id"`
+	CategoryName *string `json:"category_name"`
 	// TransferAccountID If a transfer, the account_id which the scheduled
 	// subtransaction transfers to
-	TransferAccountID *string `json:"transfer_account_id"`
+	TransferAccountID     *string `json:"transfer_account_id"`
+	TransferTransactionID *string `json:"transfer_transaction_id"`
 }
 
 // Bulk represents the output of transactions being created in bulk mode

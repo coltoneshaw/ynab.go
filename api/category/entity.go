@@ -5,10 +5,11 @@ import "github.com/coltoneshaw/ynab.go/api"
 
 // Category represents a category for a budget
 type Category struct {
-	ID              string `json:"id"`
-	CategoryGroupID string `json:"category_group_id"`
-	Name            string `json:"name"`
-	Hidden          bool   `json:"hidden"`
+	ID                string `json:"id"`
+	CategoryGroupID   string `json:"category_group_id"`
+	CategoryGroupName string `json:"category_group_name"`
+	Name              string `json:"name"`
+	Hidden            bool   `json:"hidden"`
 	// Budgeted Budgeted amount in current month in milliunits format
 	Budgeted int64 `json:"budgeted"`
 	// Activity Activity amount in current month in milliunits format

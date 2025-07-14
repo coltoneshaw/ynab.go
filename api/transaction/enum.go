@@ -95,3 +95,19 @@ const (
 	// TypeSubTransaction identifies a hybrid transaction as sub-transaction
 	TypeSubTransaction Type = "subtransaction"
 )
+
+// DebtTransactionType represents the type of debt transaction
+type DebtTransactionType string
+
+const (
+	// DebtTransactionTypePayment identifies a debt payment transaction
+	DebtTransactionTypePayment DebtTransactionType = "payment"
+	// DebtTransactionTypeRefund identifies a debt refund transaction
+	DebtTransactionTypeRefund DebtTransactionType = "refund"
+	// DebtTransactionTypeFee identifies a debt fee transaction
+	DebtTransactionTypeFee DebtTransactionType = "fee"
+	// DebtTransactionTypeInterest identifies a debt interest transaction
+	DebtTransactionTypeInterest DebtTransactionType = "interest"
+	// DebtTransactionTypeEscrow identifies a debt escrow transaction
+	DebtTransactionTypeEscrow DebtTransactionType = "escrow"
+)

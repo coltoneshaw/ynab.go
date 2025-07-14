@@ -13,6 +13,7 @@ import (
 type Month struct {
 	Month      api.Date             `json:"month"`
 	Categories []*category.Category `json:"categories"`
+	Deleted    bool                 `json:"deleted"`
 
 	Note         *string `json:"note"`
 	ToBeBudgeted *int64  `json:"to_be_budgeted"`
@@ -33,7 +34,8 @@ type Month struct {
 // Age of Money and Category (budgeted / activity / balances)
 // amounts are available.
 type Summary struct {
-	Month api.Date `json:"month"`
+	Month   api.Date `json:"month"`
+	Deleted bool     `json:"deleted"`
 
 	Note         *string `json:"note"`
 	ToBeBudgeted *int64  `json:"to_be_budgeted"`
