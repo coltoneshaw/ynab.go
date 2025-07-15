@@ -43,6 +43,8 @@ const (
 	FlagColorBlue FlagColor = "blue"
 	// FlagColorPurple identifies a transaction flagged purple
 	FlagColorPurple FlagColor = "purple"
+	// FlagColorNone identifies a transaction with no flag (empty string)
+	FlagColorNone FlagColor = ""
 )
 
 // ScheduledFrequency represents the frequency of a scheduled transaction
@@ -81,9 +83,6 @@ const (
 	FrequencyTwiceAYear ScheduledFrequency = "twiceAYear"
 	// FrequencyYearly identifies a transaction that will repeat yearly
 	FrequencyYearly ScheduledFrequency = "yearly"
-	// FrequencyEveryOtherYear identifies a transaction that will repeat
-	// every other year
-	FrequencyEveryOtherYear ScheduledFrequency = "everyOtherYear"
 )
 
 // Type represents the type of a hybrid transaction
@@ -110,4 +109,10 @@ const (
 	DebtTransactionTypeInterest DebtTransactionType = "interest"
 	// DebtTransactionTypeEscrow identifies a debt escrow transaction
 	DebtTransactionTypeEscrow DebtTransactionType = "escrow"
+	// DebtTransactionTypeBalanceAdjustment identifies a debt balance adjustment transaction
+	DebtTransactionTypeBalanceAdjustment DebtTransactionType = "balanceAdjustment"
+	// DebtTransactionTypeCredit identifies a debt credit transaction
+	DebtTransactionTypeCredit DebtTransactionType = "credit"
+	// DebtTransactionTypeCharge identifies a debt charge transaction
+	DebtTransactionTypeCharge DebtTransactionType = "charge"
 )

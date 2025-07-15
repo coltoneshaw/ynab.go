@@ -18,12 +18,22 @@ const (
 	TypeOtherAsset Type = "otherAsset"
 	// TypeOtherLiability identifies an other liability account
 	TypeOtherLiability Type = "otherLiability"
+	// TypeMortgage identifies a mortgage account
+	TypeMortgage Type = "mortgage"
+	// TypeAutoLoan identifies an auto loan account
+	TypeAutoLoan Type = "autoLoan"
+	// TypeStudentLoan identifies a student loan account
+	TypeStudentLoan Type = "studentLoan"
+	// TypePersonalLoan identifies a personal loan account
+	TypePersonalLoan Type = "personalLoan"
+	// TypeMedicalDebt identifies a medical debt account
+	TypeMedicalDebt Type = "medicalDebt"
+	// TypeOtherDebt identifies an other debt account
+	TypeOtherDebt Type = "otherDebt"
 	// TypePayPal DEPRECATED identifies a PayPal account
 	TypePayPal Type = "payPal"
 	// TypeMerchant DEPRECATED identifies a merchant account
 	TypeMerchant Type = "merchantAccount"
 	// TypeInvestment DEPRECATED identifies an investment account
 	TypeInvestment Type = "investmentAccount"
-	// TypeMortgage DEPRECATED identifies a mortgage account
-	TypeMortgage Type = "mortgage"
 )

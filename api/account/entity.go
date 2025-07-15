@@ -1,6 +1,18 @@
 // Package account implements account entities and services
 package account // import "github.com/coltoneshaw/ynab.go/api/account"
 
+// LoanAccountPeriodicValue represents periodic values for loan accounts
+// keyed by date strings in YYYY-MM-DD format (e.g., "2024-01-01").
+// Values are int64 amounts in milliunits format.
+//
+// Example:
+//
+//	{
+//	  "2024-01-01": 425000,  // $425.00 payment starting Jan 1, 2024
+//	  "2024-06-01": 450000   // $450.00 payment starting Jun 1, 2024
+//	}
+type LoanAccountPeriodicValue map[string]int64
+
 // Account represents an account for a budget
 type Account struct {
 	ID       string `json:"id"`
@@ -19,14 +31,14 @@ type Account struct {
 	// Deleted Deleted accounts will only be included in delta requests
 	Deleted bool `json:"deleted"`
 
-	Note                *string `json:"note"`
-	DirectImportLinked  bool    `json:"direct_import_linked"`
-	DirectImportInError bool    `json:"direct_import_in_error"`
-	LastReconciledAt    *string `json:"last_reconciled_at"`
-	DebtOriginalBalance *int64  `json:"debt_original_balance"`
-	DebtInterestRates   *int64  `json:"debt_interest_rates"`
-	DebtMinimumPayments *int64  `json:"debt_minimum_payments"`
-	DebtEscrowAmounts   *int64  `json:"debt_escrow_amounts"`
+	Note                *string                   `json:"note"`
+	DirectImportLinked  bool                      `json:"direct_import_linked"`
+	DirectImportInError bool                      `json:"direct_import_in_error"`
+	LastReconciledAt    *string                   `json:"last_reconciled_at"`
+	DebtOriginalBalance *int64                    `json:"debt_original_balance"`
+	DebtInterestRates   *LoanAccountPeriodicValue `json:"debt_interest_rates"`
+	DebtMinimumPayments *LoanAccountPeriodicValue `json:"debt_minimum_payments"`
+	DebtEscrowAmounts   *LoanAccountPeriodicValue `json:"debt_escrow_amounts"`
 }
 
 // SearchResultSnapshot represents a versioned snapshot for an account search

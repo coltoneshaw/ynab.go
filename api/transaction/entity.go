@@ -33,12 +33,12 @@ type Transaction struct {
 	// 'YNAB:-294230:2015-12-30:1'. If a second transaction on the same account
 	// was imported and had the same date and same amount, its import_id would
 	// be 'YNAB:-294230:2015-12-30:2'.
-	ImportID                *string `json:"import_id"`
-	ImportPayeeName         *string `json:"import_payee_name"`
-	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
-	DebtTransactionType     *string `json:"debt_transaction_type"`
-	PayeeName               *string `json:"payee_name"`
-	CategoryName            *string `json:"category_name"`
+	ImportID                *string              `json:"import_id"`
+	ImportPayeeName         *string              `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string              `json:"import_payee_name_original"`
+	DebtTransactionType     *DebtTransactionType `json:"debt_transaction_type"`
+	PayeeName               *string              `json:"payee_name"`
+	CategoryName            *string              `json:"category_name"`
 }
 
 // Summary represents the summary of a transaction for a budget
@@ -126,10 +126,10 @@ type Hybrid struct {
 	// 'YNAB:-294230:2015-12-30:1'. If a second transaction on the same account
 	// was imported and had the same date and same amount, its import_id would
 	// be 'YNAB:-294230:2015-12-30:2'.
-	ImportID                *string `json:"import_id"`
-	ImportPayeeName         *string `json:"import_payee_name"`
-	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
-	DebtTransactionType     *string `json:"debt_transaction_type"`
+	ImportID                *string              `json:"import_id"`
+	ImportPayeeName         *string              `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string              `json:"import_payee_name_original"`
+	DebtTransactionType     *DebtTransactionType `json:"debt_transaction_type"`
 	// ParentTransactionID For subtransaction types, this is the id of the parent transaction
 	// For transaction types, this id will be always be null
 	ParentTransactionID *string `json:"parent_transaction_id"`
@@ -158,14 +158,14 @@ type Scheduled struct {
 	CategoryID *string    `json:"category_id"`
 	// TransferAccountID If a transfer, the account_id which the scheduled
 	// transaction transfers to
-	TransferAccountID       *string `json:"transfer_account_id"`
-	TransferTransactionID   *string `json:"transfer_transaction_id"`
-	MatchedTransactionID    *string `json:"matched_transaction_id"`
-	ImportPayeeName         *string `json:"import_payee_name"`
-	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
-	DebtTransactionType     *string `json:"debt_transaction_type"`
-	PayeeName               *string `json:"payee_name"`
-	CategoryName            *string `json:"category_name"`
+	TransferAccountID       *string              `json:"transfer_account_id"`
+	TransferTransactionID   *string              `json:"transfer_transaction_id"`
+	MatchedTransactionID    *string              `json:"matched_transaction_id"`
+	ImportPayeeName         *string              `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string              `json:"import_payee_name_original"`
+	DebtTransactionType     *DebtTransactionType `json:"debt_transaction_type"`
+	PayeeName               *string              `json:"payee_name"`
+	CategoryName            *string              `json:"category_name"`
 }
 
 // ScheduledSummary represents the summary of a scheduled transaction for a budget
@@ -187,12 +187,12 @@ type ScheduledSummary struct {
 	CategoryID *string    `json:"category_id"`
 	// TransferAccountID If a transfer, the account_id which the scheduled
 	// transaction transfers to
-	TransferAccountID       *string `json:"transfer_account_id"`
-	TransferTransactionID   *string `json:"transfer_transaction_id"`
-	MatchedTransactionID    *string `json:"matched_transaction_id"`
-	ImportPayeeName         *string `json:"import_payee_name"`
-	ImportPayeeNameOriginal *string `json:"import_payee_name_original"`
-	DebtTransactionType     *string `json:"debt_transaction_type"`
+	TransferAccountID       *string              `json:"transfer_account_id"`
+	TransferTransactionID   *string              `json:"transfer_transaction_id"`
+	MatchedTransactionID    *string              `json:"matched_transaction_id"`
+	ImportPayeeName         *string              `json:"import_payee_name"`
+	ImportPayeeNameOriginal *string              `json:"import_payee_name_original"`
+	DebtTransactionType     *DebtTransactionType `json:"debt_transaction_type"`
 }
 
 // ScheduledSubTransaction represents a scheduled sub-transaction for
